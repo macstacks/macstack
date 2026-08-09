@@ -1,0 +1,1378 @@
+{
+  "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
+  "$comment": "Reference macstack.json example: the MEG/AMPER client BPMS stack on composable-stack-v1 (based on the live demo at dev.m-team.app). Shows every section of the format; env fields hold key NAMES only.",
+  "macstack": "1.0",
+  "name": "meg-bpms",
+  "version": "1.0.0",
+  "description": "MEG (group of companies) — BPMS: document approval, administrative documents (ORD), tasks, CRM on the composable low-code stack PostgreSQL + NocoBase + NocoDB + n8n + Trigger.dev",
+  "prototype": "github:stackmakers-ai/project-composable-stack-v1",
+  "stacks": {
+    "role": "root",
+    "substacks": []
+  },
+  "identity": {
+    "title": "MEG BPMS",
+    "client": "MEG / AMPER",
+    "organization": "meg-group",
+    "kind": "project",
+    "business_domain": "ops",
+    "domains": [
+      "dev.m-team.app"
+    ]
+  },
+  "profile": {
+    "type": "composable",
+    "stack_level": "L3",
+    "stack_version": "v1",
+    "architecture_patterns": [
+      "database-first",
+      "hub-and-spoke"
+    ],
+    "development_approach": "low-code",
+    "purposes": [
+      "workflow_execution",
+      "domain_knowledge"
+    ],
+    "operation_modes": [
+      "ui",
+      "api_mcp",
+      "hybrid"
+    ]
+  },
+  "goals": [
+    {
+      "id": "paperless-group-ops",
+      "name": "Running the group of companies without paper routine",
+      "statement": "All approvals and administrative documents of the MEG group flow through one system, without WhatsApp and manual tracking",
+      "horizon": "2026-12-31",
+      "metric": {
+        "unit": "% of documents in the system",
+        "target": 100
+      },
+      "owner": "director",
+      "status": "in_progress"
+    }
+  ],
+  "results": [
+    {
+      "id": "fast-document-approval",
+      "name": "A contract is approved and ready for signature in ≤ 2 days",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "days per document",
+        "target": 2,
+        "cadence": "recurring"
+      },
+      "problem": "Documents are thrown into WhatsApp, it is unclear who reviewed them, versions get lost",
+      "goal": "paperless-group-ops",
+      "produced_by": [
+        "document-visa"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "ord-automation",
+      "name": "An ORD is registered, distributed to assignees and archived without manual routine",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "hours saved/mo",
+        "target": 20,
+        "cadence": "recurring"
+      },
+      "problem": "Orders and memos are processed by hand per the regulations",
+      "goal": "paperless-group-ops",
+      "produced_by": [
+        "ord-management"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "single-registry",
+      "name": "A single registry of documents and approvals (history, versions, search)",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "documents tracked",
+        "target": "100%",
+        "cadence": "recurring"
+      },
+      "problem": "Lost versions and statuses, no \"who approved\" history",
+      "goal": "paperless-group-ops",
+      "produced_by": [
+        "document-visa",
+        "ord-management"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "processes": [
+    {
+      "id": "document-visa",
+      "name": "Document approval (visa)",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "lifecycle": "Draft → On approval (lawyer → financier → director) → Approved / Rejected / Returned",
+      "tasks": [
+        {
+          "id": "create-document",
+          "name": "Create the document",
+          "human": {
+            "role": "manager",
+            "gate": "input"
+          }
+        },
+        {
+          "id": "run-visa-route",
+          "name": "Run the approval route",
+          "workflow": "wf-visa-approval"
+        },
+        {
+          "id": "final-sign",
+          "name": "Final approval",
+          "human": {
+            "role": "director",
+            "gate": "approve"
+          }
+        }
+      ],
+      "produces": [
+        "fast-document-approval",
+        "single-registry"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "ord-management",
+      "name": "ORD management (orders, memos)",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "lifecycle": "Preparation → Approval (4 steps) → Registration → Distribution → Execution → Archived",
+      "tasks": [
+        {
+          "id": "ord-approve",
+          "name": "4-step approval chain",
+          "workflow": "wf-ord-approval"
+        },
+        {
+          "id": "ord-register",
+          "name": "Assign the number and date",
+          "human": {
+            "role": "office",
+            "gate": "input"
+          }
+        },
+        {
+          "id": "ord-distribute",
+          "name": "Distribute to assignees + create tasks",
+          "workflow": "wf-ord-lifecycle"
+        }
+      ],
+      "produces": [
+        "ord-automation",
+        "single-registry"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "bpms-provisioning",
+      "name": "BPMS provisioning (collections, roles, routes, dictionaries)",
+      "type": "provisioning",
+      "automation_mode": "agent",
+      "skill": "nocobase-dev:nocobase-data-modeling",
+      "produces": [
+        "single-registry"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trg-visa-apply",
+      "type": "manual",
+      "software": "nocobase",
+      "instance": "nocobase-prod",
+      "config": {
+        "note": "the Apply button in the Approval Center"
+      }
+    },
+    {
+      "id": "trg-ord-apply",
+      "type": "manual",
+      "software": "nocobase",
+      "instance": "nocobase-prod"
+    },
+    {
+      "id": "trg-ord-status-change",
+      "type": "db_event",
+      "software": "nocobase",
+      "instance": "nocobase-prod",
+      "config": {
+        "entity": "document",
+        "field": "statusOrd",
+        "event": "update"
+      }
+    },
+    {
+      "id": "trg-hourly-overdue",
+      "type": "schedule",
+      "software": "nocobase",
+      "instance": "nocobase-prod",
+      "config": {
+        "schedule": "0 * * * *"
+      }
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf-visa-approval",
+      "name": "Documents - Visa Approval - OnApply",
+      "engine": "nocobase-workflows",
+      "software": "nocobase",
+      "triggers": [
+        "trg-visa-apply"
+      ],
+      "invocation": [
+        "internal",
+        "api",
+        "trigger"
+      ],
+      "implements": "document-visa",
+      "uses": [
+        "document",
+        "approval-route"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-ord-approval",
+      "name": "ORD - Approval Chain - OnApply",
+      "engine": "nocobase-workflows",
+      "software": "nocobase",
+      "triggers": [
+        "trg-ord-apply"
+      ],
+      "invocation": [
+        "internal",
+        "trigger"
+      ],
+      "implements": "ord-management",
+      "uses": [
+        "document",
+        "approval-route"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-ord-lifecycle",
+      "name": "ORD - Lifecycle - OnStatusChange",
+      "engine": "nocobase-workflows",
+      "software": "nocobase",
+      "triggers": [
+        "trg-ord-status-change"
+      ],
+      "invocation": [
+        "internal",
+        "trigger"
+      ],
+      "implements": "ord-management",
+      "uses": [
+        "document",
+        "task"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-overdue-reminders",
+      "name": "Tasks - Overdue Reminders - Hourly",
+      "engine": "nocobase-workflows",
+      "software": "nocobase",
+      "triggers": [
+        "trg-hourly-overdue"
+      ],
+      "invocation": [
+        "internal",
+        "trigger"
+      ],
+      "implements": "ord-management",
+      "uses": [
+        "task"
+      ],
+      "status": "planned"
+    }
+  ],
+  "software": [
+    {
+      "id": "postgresql",
+      "category": "databases",
+      "type": "ready_made",
+      "form": [
+        "cli",
+        "api_service"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data"
+      ],
+      "role": "The shared relational database — the source of truth for all stack services",
+      "value": "data",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "pg-main",
+          "environment": "prod",
+          "server": "m-team-server",
+          "url_env": "POSTGRES_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "nocobase",
+      "category": "low-code-platforms",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data",
+        "logic",
+        "interface"
+      ],
+      "role": "The BPMS platform: collections, workflows, Approval Center, admin UI",
+      "value": "interface",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "nocobase-prod",
+          "environment": "prod",
+          "url": "https://m-team.app",
+          "deploy": "docker-compose"
+        },
+        {
+          "id": "nocobase-dev",
+          "environment": "dev",
+          "url": "https://dev.m-team.app",
+          "deploy": "docker-compose"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": "partial",
+        "rating": "good"
+      },
+      "components": [
+        {
+          "type": "collection",
+          "name": "documents"
+        },
+        {
+          "type": "collection",
+          "name": "approval_routes"
+        },
+        {
+          "type": "workflow",
+          "name": "WF: Document Visa Approval"
+        },
+        {
+          "type": "workflow",
+          "name": "WF: ORD Approval"
+        },
+        {
+          "type": "dashboard",
+          "name": "Approval Center"
+        }
+      ]
+    },
+    {
+      "id": "nocodb",
+      "category": "low-code-platforms",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data",
+        "interface"
+      ],
+      "role": "Spreadsheet views and shared forms over PostgreSQL",
+      "value": "interface",
+      "hosting": "self_hosted",
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": false,
+        "rating": "good"
+      }
+    },
+    {
+      "id": "n8n",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Integration automations and external APIs",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "trigger-dev",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web",
+        "cli"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Durable background jobs; task code lives in this repo",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "trigger-prod",
+          "environment": "prod",
+          "deploy": "docker-compose",
+          "url_env": "TRIGGER_API_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "bas",
+      "name": "BAS (1C Ukraine)",
+      "category": "accounting",
+      "type": "ready_made",
+      "form": [
+        "desktop"
+      ],
+      "license": "proprietary",
+      "layers": [
+        "data"
+      ],
+      "role": "The client's accounting system — the external master of the product catalog",
+      "value": "data",
+      "hosting": "external",
+      "agentic": {
+        "mcp": false,
+        "api": false,
+        "cli": false,
+        "rating": "none"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "document",
+      "name": "Document (contract, invoice, act, order)",
+      "attributes": [
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "documentType",
+          "type": "relation",
+          "relation": "document-type",
+          "required": true
+        },
+        {
+          "name": "company",
+          "type": "relation",
+          "relation": "company",
+          "required": true
+        },
+        {
+          "name": "documentNumber",
+          "type": "string"
+        },
+        {
+          "name": "validUntil",
+          "type": "date"
+        },
+        {
+          "name": "file",
+          "type": "file"
+        },
+        {
+          "name": "summary",
+          "type": "string"
+        },
+        {
+          "name": "statusVisa",
+          "type": "enum",
+          "values": [
+            "draft",
+            "on_visa",
+            "approved",
+            "rejected",
+            "returned"
+          ]
+        },
+        {
+          "name": "statusOrd",
+          "type": "enum",
+          "values": [
+            "registration",
+            "distribution",
+            "execution",
+            "archived"
+          ]
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "instance": "pg-main",
+          "role": "master",
+          "collection": "documents"
+        },
+        {
+          "software": "nocobase",
+          "instance": "nocobase-prod",
+          "role": "interface"
+        },
+        {
+          "software": "nocobase",
+          "instance": "nocobase-dev",
+          "role": "replica",
+          "sync": "export/import on dev → prod promotion"
+        },
+        {
+          "software": "nocodb",
+          "role": "interface"
+        }
+      ],
+      "master": "postgresql",
+      "state_fields": [
+        {
+          "field": "statusVisa",
+          "drives": "document-visa"
+        },
+        {
+          "field": "statusOrd",
+          "states": [
+            "registration",
+            "distribution",
+            "execution",
+            "archived"
+          ],
+          "drives": "ord-management"
+        }
+      ],
+      "relations": [
+        "company",
+        "approval-route",
+        "task"
+      ]
+    },
+    {
+      "id": "approval-route",
+      "name": "Approval route",
+      "description": "Editable without a developer; a step = order + role",
+      "attributes": [
+        {
+          "name": "documentType",
+          "type": "relation",
+          "relation": "document-type"
+        },
+        {
+          "name": "steps",
+          "type": "json"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "role": "master",
+          "collection": "approval_routes"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "task",
+      "name": "Task",
+      "attributes": [
+        {
+          "name": "assignee",
+          "type": "relation",
+          "relation": "user"
+        },
+        {
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "open",
+            "blocked",
+            "done",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "category",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "role": "master",
+          "collection": "tasks"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "company",
+      "name": "MEG group company",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "role": "master",
+          "collection": "companies"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "client",
+      "name": "Client (counterparty)",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "edrpou",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "role": "master",
+          "collection": "clients"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "deal",
+      "name": "Deal",
+      "attributes": [
+        {
+          "name": "stage",
+          "type": "enum",
+          "values": [
+            "lead",
+            "qualified",
+            "proposal",
+            "won",
+            "lost"
+          ]
+        },
+        {
+          "name": "client",
+          "type": "relation",
+          "relation": "client"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "role": "master",
+          "collection": "deals"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "nomenclature",
+      "name": "Product catalog (goods)",
+      "description": "Master — the external BAS accounting system; the stack keeps a replica",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "bas",
+          "role": "master"
+        },
+        {
+          "software": "postgresql",
+          "role": "replica",
+          "sync": "tbd — pending the BAS integration decision"
+        }
+      ],
+      "master": "bas"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "approval-center",
+      "name": "Approval Center",
+      "type": "approval_center",
+      "audience": "human",
+      "mode": "ui",
+      "software": "nocobase",
+      "instances": [
+        "nocobase-prod"
+      ],
+      "path": "/admin/approval-center",
+      "related": [
+        "task-manager",
+        "notify-inapp",
+        "notify-email"
+      ],
+      "roles": [
+        "manager",
+        "lawyer",
+        "financier",
+        "director"
+      ],
+      "entities": [
+        "document",
+        "approval-route"
+      ],
+      "workflows": [
+        "wf-visa-approval",
+        "wf-ord-approval"
+      ],
+      "languages": [
+        "uk",
+        "en"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "task-manager",
+      "name": "Task manager",
+      "type": "admin_ui",
+      "audience": "human",
+      "mode": "ui",
+      "software": "nocobase",
+      "instances": [
+        "nocobase-prod"
+      ],
+      "path": "/admin/tasks",
+      "related": [
+        "approval-center"
+      ],
+      "roles": [
+        "manager",
+        "director",
+        "office"
+      ],
+      "entities": [
+        "task"
+      ],
+      "views": [
+        "table",
+        "kanban",
+        "calendar"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "crm",
+      "name": "CRM (clients and deals)",
+      "type": "admin_ui",
+      "audience": "human",
+      "mode": "ui",
+      "software": "nocobase",
+      "instances": [
+        "nocobase-prod"
+      ],
+      "path": "/admin/crm",
+      "roles": [
+        "manager",
+        "director"
+      ],
+      "entities": [
+        "client",
+        "deal"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "notify-inapp",
+      "name": "In-app notifications",
+      "type": "channel",
+      "audience": "human",
+      "software": "nocobase",
+      "related": [
+        "approval-center"
+      ],
+      "workflows": [
+        "wf-visa-approval"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "notify-email",
+      "name": "Email notifications",
+      "type": "channel",
+      "audience": "human",
+      "software": "nocobase",
+      "status": "ready_to_connect"
+    },
+    {
+      "id": "agent-mcp",
+      "name": "Agent access to the stack (MCP)",
+      "type": "cli",
+      "audience": "agent",
+      "mode": "api_mcp",
+      "entities": [
+        "document",
+        "task",
+        "client",
+        "deal"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "connections": {
+    "mcp": [
+      {
+        "id": "nocobase-mcp",
+        "software": "nocobase",
+        "instance": "nocobase-dev",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "NOCOBASE_DEV_URL",
+        "capabilities": "Collections, fields, workflows, pages (provisioning + dev; promotion to prod via export/import)"
+      },
+      {
+        "id": "nocodb-mcp",
+        "software": "nocodb",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "NOCODB_MCP_URL",
+        "capabilities": "Record CRUD, views"
+      },
+      {
+        "id": "postgresql-mcp",
+        "software": "postgresql",
+        "instance": "pg-main",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "POSTGRESQL_MCP_URL",
+        "capabilities": "Complex SQL, JOINs, schema migrations"
+      },
+      {
+        "id": "n8n-mcp",
+        "software": "n8n",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "N8N_API_URL",
+        "capabilities": "Run and manage workflows"
+      },
+      {
+        "id": "trigger-mcp",
+        "software": "trigger-dev",
+        "instance": "trigger-prod",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "TRIGGER_API_URL",
+        "capabilities": "Trigger tasks, run statuses"
+      }
+    ]
+  },
+  "agents": {
+    "stack_agents": [
+      {
+        "id": "openclaw-meg",
+        "name": "OpenClaw MEG (Telegram orchestrator)",
+        "runtime": "openclaw",
+        "hierarchy_role": "orchestrator",
+        "instance": "openclaw-meg",
+        "tier": 1,
+        "reads_stack": false,
+        "can_modify_stack": false,
+        "channels": [
+          "telegram"
+        ],
+        "modes": [
+          "remote_interactive"
+        ],
+        "model": "anthropic/claude-haiku",
+        "access": [
+          "nocodb-mcp",
+          "n8n-mcp"
+        ],
+        "context_packs": [
+          "MEG Operations Pack"
+        ],
+        "delegates_to": [
+          "claude-code-meg"
+        ],
+        "billing": "api_key",
+        "invocations": [
+          {
+            "via": "channel",
+            "channel": "telegram"
+          }
+        ]
+      },
+      {
+        "id": "claude-code-meg",
+        "name": "Claude Code (worker in the stack directory)",
+        "runtime": "claude-code",
+        "hierarchy_role": "worker",
+        "instance": "meg-bpms",
+        "tier": 1,
+        "reads_stack": true,
+        "can_modify_stack": true,
+        "modes": [
+          "manual",
+          "headless"
+        ],
+        "model": "anthropic/claude-sonnet",
+        "access": [
+          "nocobase-mcp",
+          "nocodb-mcp",
+          "postgresql-mcp",
+          "n8n-mcp",
+          "trigger-mcp"
+        ],
+        "context_packs": [
+          "Composable Stack Dev Pack"
+        ],
+        "billing": "subscription_oauth",
+        "state": "--resume + state.json",
+        "invocations": [
+          {
+            "via": "manual"
+          }
+        ]
+      }
+    ],
+    "managed_agents": [
+      {
+        "id": "ai-lawyer",
+        "name": "AI Lawyer",
+        "role": "Contract analysis, risk clauses, requisites, references to the Civil/Commercial Codes of Ukraine",
+        "model": "anthropic/claude-sonnet-4.6",
+        "instructions": "Answer in Ukrainian, address people by name; verify requisites and risk clauses of contracts against the MEG knowledge base",
+        "tools": {
+          "native": [
+            "knowledge-base-retrieve",
+            "dataQuery"
+          ]
+        },
+        "knowledge_base": "MEG knowledge base",
+        "languages": [
+          "uk"
+        ],
+        "available_to": [
+          "director",
+          "lawyer",
+          "manager"
+        ],
+        "invocations": [
+          {
+            "via": "interface",
+            "interface": "approval-center"
+          }
+        ]
+      },
+      {
+        "id": "ai-financier",
+        "name": "AI Financier",
+        "role": "Invoice checks, VAT, deal pipeline, financial reports",
+        "model": "anthropic/claude-sonnet-4.6",
+        "instructions": "Check invoices and VAT, analyze the deal pipeline from the stack's data",
+        "tools": {
+          "native": [
+            "knowledge-base-retrieve",
+            "dataQuery"
+          ]
+        },
+        "knowledge_base": "MEG knowledge base",
+        "languages": [
+          "uk"
+        ],
+        "available_to": [
+          "director",
+          "financier",
+          "manager"
+        ],
+        "invocations": [
+          {
+            "via": "interface",
+            "interface": "crm"
+          }
+        ]
+      },
+      {
+        "id": "ai-clerk",
+        "name": "AI Records Clerk",
+        "role": "Drafts of orders and memos per the DSTU 4163-2003 standard",
+        "model": "anthropic/claude-sonnet-4.6",
+        "instructions": "Prepare ORD drafts per DSTU 4163-2003 in Ukrainian",
+        "tools": {
+          "native": [
+            "knowledge-base-retrieve"
+          ]
+        },
+        "knowledge_base": "MEG knowledge base",
+        "languages": [
+          "uk"
+        ],
+        "available_to": [
+          "office",
+          "manager",
+          "director"
+        ],
+        "invocations": [
+          {
+            "via": "interface",
+            "interface": "task-manager"
+          }
+        ]
+      }
+    ]
+  },
+  "context": {
+    "plugins": {
+      "technology": [
+        "nocobase-dev",
+        "nocodb-ops",
+        "n8n-dev",
+        "n8n-provision",
+        "trigger-dev",
+        "web-search-dev"
+      ],
+      "process": [],
+      "stack": [
+        "stack-composable-stack-v1"
+      ]
+    },
+    "packs": [
+      {
+        "name": "MEG Operations Pack",
+        "type": "operations",
+        "plugins": [
+          "nocodb-ops"
+        ]
+      },
+      {
+        "name": "Composable Stack Dev Pack",
+        "type": "development",
+        "plugins": [
+          "stack-composable-stack-v1",
+          "nocobase-dev",
+          "n8n-dev",
+          "trigger-dev"
+        ]
+      }
+    ],
+    "platforms": [
+      "claude-code"
+    ],
+    "marketplaces": [
+      "agents-store-claude-plugins",
+      "agents-store-claude-plugins-private"
+    ]
+  },
+  "roles": [
+    {
+      "id": "director",
+      "name": "Director",
+      "sees": "All data of all group companies",
+      "can": "Final approval, reports"
+    },
+    {
+      "id": "lawyer",
+      "name": "Lawyer",
+      "sees": "Documents and tasks of their own company",
+      "can": "First approval step",
+      "acl": [
+        {
+          "entity": "document",
+          "fields": [
+            "summary",
+            "statusVisa"
+          ],
+          "actions": [
+            "read",
+            "update",
+            "approve"
+          ]
+        }
+      ],
+      "isolation": "by the company field (an AMPER lawyer cannot see MEG-2/MEG-3 documents)"
+    },
+    {
+      "id": "financier",
+      "name": "Financier",
+      "sees": "Documents and tasks",
+      "can": "Second approval step",
+      "acl": [
+        {
+          "entity": "document",
+          "fields": [
+            "summary",
+            "statusVisa"
+          ],
+          "actions": [
+            "read",
+            "update",
+            "approve"
+          ]
+        }
+      ],
+      "isolation": "by the company field"
+    },
+    {
+      "id": "manager",
+      "name": "Manager",
+      "sees": "Everything except admin settings",
+      "can": "CRUD on documents, tasks, clients, deals; cannot change statusVisa"
+    },
+    {
+      "id": "office",
+      "name": "Office (registration)",
+      "sees": "Documents (registration only)",
+      "can": "Assigning the number and date",
+      "acl": [
+        {
+          "entity": "document",
+          "fields": [
+            "documentNumber",
+            "registeredAt",
+            "statusOrd"
+          ],
+          "actions": [
+            "read",
+            "update"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "name": "Administrator",
+      "sees": "Everything",
+      "can": "System, role and user configuration"
+    }
+  ],
+  "resources": {
+    "accesses": [
+      {
+        "env": "NOCOBASE_API_KEY",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "nocobase",
+        "provided_by": "us"
+      },
+      {
+        "env": "NOCOBASE_DEV_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "nocobase",
+        "provided_by": "us"
+      },
+      {
+        "env": "NOCODB_TOKEN",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "nocodb",
+        "provided_by": "us"
+      },
+      {
+        "env": "NOCODB_MCP_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "nocodb",
+        "provided_by": "us"
+      },
+      {
+        "env": "POSTGRES_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "POSTGRESQL_MCP_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_KEY",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_SECRET_KEY",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_API_URL",
+        "required": true,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "SMTP_HOST",
+        "required": false,
+        "source": "infisical",
+        "environment": "prod",
+        "for": "nocobase",
+        "provided_by": "client"
+      }
+    ],
+    "external_services": [
+      "BAS (1C Ukraine)",
+      "Vchasno",
+      "Medoc"
+    ],
+    "bindings": {
+      "infisical": {
+        "workspaceName": "meg-bpms",
+        "defaultEnvironment": "prod"
+      }
+    }
+  },
+  "integrations": [
+    {
+      "id": "bas",
+      "system": "BAS (1C Ukraine)",
+      "direction": "tbd",
+      "approach": "tbd",
+      "entities": [
+        "nomenclature"
+      ],
+      "status": "planned",
+      "open_questions": [
+        "Do we push or pull?",
+        "Does the client's 1C version have an API?"
+      ]
+    },
+    {
+      "id": "vchasno",
+      "system": "Vchasno (e-signature)",
+      "direction": "push",
+      "approach": "tbd",
+      "entities": [
+        "document"
+      ],
+      "status": "planned",
+      "open_questions": [
+        "Send for signature straight from the system?"
+      ]
+    },
+    {
+      "id": "medok",
+      "system": "Medoc",
+      "direction": "tbd",
+      "approach": "tbd",
+      "status": "planned"
+    }
+  ],
+  "lifecycle": {
+    "stage": "test",
+    "coverage_target": "70% MVP → 95% on real cases",
+    "needs_from_client": [
+      "Processes #3-5 from the questionnaire",
+      "Routes for purchase requests and HR documents",
+      "Headcount per role",
+      "SMTP credentials for the email channel",
+      "A decision on the BAS/Vchasno/Medoc approach"
+    ],
+    "next_steps": [
+      "Scheduled reminders for overdue tasks (2-3 h)",
+      "Connect the email channel (1 h)",
+      "Dashboards once KPIs are clarified (4-6 h)",
+      "Per-documentType ACL (1-2 h)"
+    ],
+    "updated": "2026-08-08"
+  },
+  "commercial": {
+    "offer": {
+      "type": "Composable Stack (v1)",
+      "price_range": "$3,000–$15,000",
+      "model": "one_time"
+    },
+    "cost_of_ownership": {
+      "items": [
+        {
+          "name": "Self-hosted server (all services)",
+          "usd_month": 40
+        },
+        {
+          "name": "Claude API (AI assistants)",
+          "usd_month": "20–60"
+        }
+      ],
+      "total_usd_month": "60–100"
+    }
+  }
+}

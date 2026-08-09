@@ -1,0 +1,907 @@
+{
+  "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
+  "$comment": "EXAMPLE 2/3: a SUBSTACK of the NOVA Trade organization — marketing website + blog (Application Stack / Web Application, Directus + Next.js + Trigger.dev). Demonstrates: substack → root, a cross-stack entity master (leads flow into the root stack's client base), the triggers collection (form/db_event/manual/schedule), a managed agent with invocations via workflow, interfaces with a path relative to the instance, a full commercial layer.",
+  "macstack": "1.0",
+  "name": "nova-website",
+  "version": "1.2.0",
+  "description": "NOVA Trade — marketing website with a blog and lead generation (Directus CMS + Next.js + Trigger.dev)",
+  "prototype": "github:stackmakers-ai/project-directus-nextjs-trigger-dev",
+  "stacks": {
+    "role": "substack",
+    "root": {
+      "id": "nova-root",
+      "ref": "github:nova-trade/nova-root"
+    }
+  },
+  "identity": {
+    "title": "NOVA Trade Website",
+    "client": "NOVA Trade",
+    "organization": "nova-trade",
+    "kind": "project",
+    "business_domain": "marketing",
+    "domains": [
+      "nova-trade.example"
+    ]
+  },
+  "profile": {
+    "type": "application",
+    "category": "web_application",
+    "stack_level": "L3",
+    "architecture_patterns": [
+      "database-first"
+    ],
+    "development_approach": "hybrid",
+    "purposes": [
+      "workflow_execution",
+      "artifact_generation"
+    ],
+    "operation_modes": [
+      "ui",
+      "api_mcp",
+      "hybrid"
+    ],
+    "upgrade_path": [
+      {
+        "add": [
+          "qdrant"
+        ],
+        "gives": "semantic search over the blog"
+      },
+      {
+        "add": [
+          "minio"
+        ],
+        "gives": "S3 media storage"
+      }
+    ]
+  },
+  "goals": [
+    {
+      "id": "grow-inbound",
+      "name": "Inbound sales channel",
+      "statement": "By year end, 50% of new NOVA clients come from the website",
+      "horizon": "2026-12-31",
+      "metric": {
+        "unit": "% new clients from site",
+        "target": 50
+      },
+      "owner": "marketing-lead",
+      "status": "in_progress"
+    }
+  ],
+  "results": [
+    {
+      "id": "qualified-leads",
+      "name": "Qualified website leads delivered into the organization's CRM",
+      "class": "pipeline_asset",
+      "metric": {
+        "unit": "leads/mo",
+        "target": 40,
+        "cadence": "recurring"
+      },
+      "value_usd_month": "$2,000–$8,000 pipeline (indirect)",
+      "problem": "Leads come only from referrals; the website does not convert",
+      "goal": "grow-inbound",
+      "produced_by": [
+        "lead-capture"
+      ],
+      "feeds": [
+        "nova-root:client-management"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "content-cadence",
+      "name": "A regular SEO content cadence",
+      "class": "pipeline_asset",
+      "metric": {
+        "unit": "posts/week",
+        "target": 3,
+        "cadence": "recurring"
+      },
+      "problem": "The blog is updated sporadically, organic traffic does not grow",
+      "goal": "grow-inbound",
+      "produced_by": [
+        "content-publishing"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "website-live",
+      "name": "A fast working website (Core Web Vitals green)",
+      "class": "pipeline_asset",
+      "metric": {
+        "unit": "uptime %",
+        "target": 99.9,
+        "cadence": "recurring"
+      },
+      "problem": "The old website is slow and cannot be edited without a developer",
+      "goal": "grow-inbound",
+      "produced_by": [
+        "site-development"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "processes": [
+    {
+      "id": "lead-capture",
+      "name": "Lead intake and sync",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "tasks": [
+        {
+          "id": "capture-form",
+          "name": "Form → Directus",
+          "workflow": "wf-lead-intake"
+        },
+        {
+          "id": "sync-to-crm",
+          "name": "Sync the lead into the org CRM",
+          "workflow": "wf-lead-sync"
+        }
+      ],
+      "produces": [
+        "qualified-leads"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "content-publishing",
+      "name": "Content production and publishing",
+      "type": "operations",
+      "automation_mode": "hybrid",
+      "skill": "seo-dev:content-seo",
+      "tasks": [
+        {
+          "id": "draft-post",
+          "name": "Article draft (AI)",
+          "workflow": "wf-content-draft"
+        },
+        {
+          "id": "approve-post",
+          "name": "Review and publish",
+          "human": {
+            "role": "marketing-lead",
+            "gate": "approve"
+          }
+        },
+        {
+          "id": "publish-post",
+          "name": "Publish + ISR revalidate",
+          "workflow": "wf-publish"
+        }
+      ],
+      "produces": [
+        "content-cadence"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "site-development",
+      "name": "Website development and evolution",
+      "type": "development",
+      "automation_mode": "agent",
+      "skill": "stack-directus-nextjs-trigger-dev:full-feature",
+      "produces": [
+        "website-live"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trg-lead-form-submit",
+      "type": "form",
+      "software": "directus",
+      "instance": "directus-prod",
+      "config": {
+        "collection": "leads_inbox"
+      }
+    },
+    {
+      "id": "trg-lead-created",
+      "type": "db_event",
+      "software": "directus",
+      "instance": "directus-prod",
+      "config": {
+        "entity": "lead",
+        "event": "create"
+      }
+    },
+    {
+      "id": "trg-content-request",
+      "type": "manual"
+    },
+    {
+      "id": "trg-post-approved",
+      "type": "db_event",
+      "software": "directus",
+      "instance": "directus-prod",
+      "config": {
+        "entity": "post",
+        "event": "update",
+        "condition": "status → published"
+      }
+    },
+    {
+      "id": "trg-monday-0600",
+      "type": "schedule",
+      "software": "trigger-dev",
+      "instance": "trigger-nova",
+      "config": {
+        "schedule": "0 6 * * 1"
+      }
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf-lead-intake",
+      "name": "Leads - Intake - OnFormSubmit",
+      "engine": "directus-flows",
+      "software": "directus",
+      "triggers": [
+        "trg-lead-form-submit"
+      ],
+      "invocation": [
+        "webhook",
+        "trigger"
+      ],
+      "implements": "lead-capture",
+      "uses": [
+        "lead"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-lead-sync",
+      "name": "Leads - Sync To Org CRM - OnCreate",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-lead-created"
+      ],
+      "execution": "background",
+      "invocation": [
+        "api",
+        "trigger"
+      ],
+      "implements": "lead-capture",
+      "uses": [
+        "lead",
+        "nova-root:client"
+      ],
+      "location": "src/trigger/lead-sync.ts",
+      "retry": "3 attempts, exponential backoff",
+      "status": "implemented"
+    },
+    {
+      "id": "wf-content-draft",
+      "name": "Content - Draft - OnRequest",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-content-request"
+      ],
+      "execution": "background",
+      "invocation": [
+        "mcp",
+        "api",
+        "trigger"
+      ],
+      "implements": "content-publishing",
+      "uses": [
+        "post"
+      ],
+      "location": "src/trigger/content-draft.ts",
+      "status": "in_progress"
+    },
+    {
+      "id": "wf-publish",
+      "name": "Content - Publish - OnApprove",
+      "engine": "directus-flows",
+      "software": "directus",
+      "triggers": [
+        "trg-post-approved"
+      ],
+      "invocation": [
+        "api",
+        "trigger"
+      ],
+      "implements": "content-publishing",
+      "uses": [
+        "post"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-seo-audit",
+      "name": "SEO - Site Audit - Weekly",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-monday-0600"
+      ],
+      "execution": "background",
+      "invocation": [
+        "cli",
+        "trigger"
+      ],
+      "implements": "content-publishing",
+      "uses": [
+        "post"
+      ],
+      "status": "planned"
+    }
+  ],
+  "software": [
+    {
+      "id": "directus",
+      "category": "cms",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data"
+      ],
+      "role": "Headless CMS: content, leads, media",
+      "value": "data",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "directus-prod",
+          "environment": "prod",
+          "url_env": "DIRECTUS_URL",
+          "deploy": "dokploy"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "nextjs",
+      "category": "frontend-frameworks",
+      "type": "framework",
+      "form": [
+        "web",
+        "cli"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic",
+        "interface"
+      ],
+      "role": "Website: App Router, SSR/ISR, API routes",
+      "value": "interface",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "site-prod",
+          "environment": "prod",
+          "url": "https://nova-trade.example",
+          "deploy": "dokploy"
+        }
+      ],
+      "agentic": {
+        "mcp": false,
+        "api": "partial",
+        "cli": true,
+        "rating": "basic"
+      }
+    },
+    {
+      "id": "trigger-dev",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web",
+        "cli"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Background jobs: lead sync, content drafts, SEO audit",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "trigger-nova",
+          "environment": "prod",
+          "url_env": "TRIGGER_API_URL",
+          "deploy": "docker-compose"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "mailgun",
+      "category": "communication",
+      "type": "ready_made",
+      "form": [
+        "api_service"
+      ],
+      "license": "saas",
+      "layers": [
+        "logic"
+      ],
+      "role": "Transactional email (lead notifications)",
+      "value": "workflows",
+      "hosting": "saas_cloud",
+      "agentic": {
+        "mcp": false,
+        "api": true,
+        "cli": false,
+        "rating": "basic"
+      },
+      "cost": {
+        "model": "usage",
+        "usd_month": "0–35"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "post",
+      "name": "Blog post",
+      "attributes": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "draft",
+            "review",
+            "published"
+          ]
+        },
+        {
+          "name": "seo_keywords",
+          "type": "json"
+        }
+      ],
+      "stores": [
+        {
+          "software": "directus",
+          "instance": "directus-prod",
+          "role": "master",
+          "collection": "posts"
+        }
+      ],
+      "master": "directus",
+      "state_fields": [
+        {
+          "field": "status",
+          "drives": "content-publishing"
+        }
+      ]
+    },
+    {
+      "id": "lead",
+      "name": "Website lead",
+      "description": "Created by the website form; the MASTER is the organization root stack's client base (cross-stack), the local store is only an intake buffer",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "name": "utm",
+          "type": "json"
+        }
+      ],
+      "stores": [
+        {
+          "software": "nova-root:postgresql",
+          "role": "master",
+          "collection": "clients",
+          "sync": "wf-lead-sync"
+        },
+        {
+          "software": "directus",
+          "instance": "directus-prod",
+          "role": "interface",
+          "collection": "leads_inbox"
+        }
+      ],
+      "master": "nova-root:postgresql"
+    },
+    {
+      "id": "case-study",
+      "name": "Case study (portfolio)",
+      "attributes": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "client_name",
+          "type": "string"
+        },
+        {
+          "name": "result_summary",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "directus",
+          "instance": "directus-prod",
+          "role": "master",
+          "collection": "case_studies"
+        }
+      ],
+      "master": "directus"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "site",
+      "name": "Public website",
+      "type": "web",
+      "audience": "human",
+      "mode": "ui",
+      "software": "nextjs",
+      "instances": [
+        "site-prod"
+      ],
+      "path": "/",
+      "related": [
+        "cms-admin",
+        "lead-form"
+      ],
+      "entities": [
+        "post",
+        "case-study"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "lead-form",
+      "name": "Lead form",
+      "type": "form",
+      "audience": "human",
+      "software": "nextjs",
+      "instances": [
+        "site-prod"
+      ],
+      "path": "/contact",
+      "related": [
+        "site"
+      ],
+      "entities": [
+        "lead"
+      ],
+      "workflows": [
+        "wf-lead-intake"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "cms-admin",
+      "name": "Content admin (Directus)",
+      "type": "admin_ui",
+      "audience": "human",
+      "mode": "ui",
+      "software": "directus",
+      "instances": [
+        "directus-prod"
+      ],
+      "path": "/admin",
+      "related": [
+        "site"
+      ],
+      "roles": [
+        "marketing-lead",
+        "admin"
+      ],
+      "entities": [
+        "post",
+        "case-study",
+        "lead"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "notify-lead-email",
+      "name": "New-lead email notification",
+      "type": "channel",
+      "audience": "human",
+      "software": "mailgun",
+      "related": [
+        "lead-form"
+      ],
+      "workflows": [
+        "wf-lead-sync"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "connections": {
+    "mcp": [
+      {
+        "id": "directus-mcp",
+        "software": "directus",
+        "instance": "directus-prod",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "DIRECTUS_URL",
+        "capabilities": "Collections, items, files, flows"
+      },
+      {
+        "id": "trigger-mcp",
+        "software": "trigger-dev",
+        "instance": "trigger-nova",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "TRIGGER_API_URL",
+        "capabilities": "Trigger tasks, run statuses"
+      }
+    ],
+    "apis": [
+      {
+        "software": "mailgun",
+        "kind": "rest",
+        "url_env": "MAILGUN_API_URL"
+      }
+    ]
+  },
+  "agents": {
+    "stack_agents": [
+      {
+        "id": "claude-code-website",
+        "name": "Claude Code — website worker",
+        "runtime": "claude-code",
+        "hierarchy_role": "worker",
+        "instance": "nova-website (this repo's directory)",
+        "tier": 1,
+        "reads_stack": true,
+        "can_modify_stack": true,
+        "modes": [
+          "manual",
+          "headless"
+        ],
+        "model": "anthropic/claude-sonnet",
+        "access": [
+          "directus-mcp",
+          "trigger-mcp"
+        ],
+        "context_packs": [
+          "Website Dev Pack"
+        ],
+        "billing": "subscription_oauth",
+        "state": "--resume",
+        "invocations": [
+          {
+            "via": "manual"
+          }
+        ]
+      }
+    ],
+    "managed_agents": [
+      {
+        "id": "content-writer",
+        "name": "AI Content Writer",
+        "role": "SEO article drafts per the content plan and the NOVA brand book",
+        "model": "anthropic/claude-sonnet-4.6",
+        "instructions": "Write NOVA Trade blog article drafts per the content plan: B2B expert tone, H2/H3 structure, 1200-1800 words; facts only from the knowledge base",
+        "instructions_ref": "docs/agents/content-writer.md",
+        "tools": {
+          "mcp": [
+            "directus-mcp"
+          ],
+          "workflows": [
+            "wf-content-draft"
+          ]
+        },
+        "knowledge_base": "NOVA brand book + case studies",
+        "languages": [
+          "ru",
+          "en"
+        ],
+        "available_to": [
+          "marketing-lead"
+        ],
+        "invocations": [
+          {
+            "via": "workflow",
+            "workflow": "wf-content-draft"
+          }
+        ]
+      }
+    ]
+  },
+  "context": {
+    "plugins": {
+      "technology": [
+        "directus-dev",
+        "nextjs-dev",
+        "nextjs-provision",
+        "trigger-dev",
+        "seo-dev"
+      ],
+      "process": [
+        "media-hosting-ops"
+      ],
+      "stack": [
+        "stack-directus-nextjs-trigger-dev"
+      ]
+    },
+    "packs": [
+      {
+        "name": "Website Dev Pack",
+        "type": "development",
+        "plugins": [
+          "stack-directus-nextjs-trigger-dev",
+          "directus-dev",
+          "nextjs-dev",
+          "seo-dev"
+        ]
+      }
+    ],
+    "platforms": [
+      "claude-code"
+    ],
+    "marketplaces": [
+      "agents-store-claude-plugins"
+    ]
+  },
+  "roles": [
+    {
+      "id": "marketing-lead",
+      "name": "Marketing lead",
+      "sees": "Content, leads",
+      "can": "Review and publish articles, process leads"
+    },
+    {
+      "id": "admin",
+      "name": "Administrator",
+      "sees": "Everything",
+      "can": "CMS and role configuration"
+    }
+  ],
+  "resources": {
+    "accesses": [
+      {
+        "env": "DIRECTUS_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "directus",
+        "provided_by": "us"
+      },
+      {
+        "env": "DIRECTUS_TOKEN",
+        "required": true,
+        "source": "infisical",
+        "for": "directus",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_API_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_SECRET_KEY",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "MAILGUN_API_KEY",
+        "required": false,
+        "source": "infisical",
+        "for": "mailgun",
+        "provided_by": "client"
+      },
+      {
+        "env": "MAILGUN_API_URL",
+        "required": false,
+        "source": "infisical",
+        "for": "mailgun",
+        "provided_by": "client"
+      }
+    ],
+    "bindings": {
+      "infisical": {
+        "workspaceName": "nova-website",
+        "defaultEnvironment": "prod"
+      },
+      "dokploy": {
+        "note": "composeId in .dokploy.json"
+      }
+    }
+  },
+  "integrations": [
+    {
+      "id": "search-console",
+      "system": "Google Search Console",
+      "direction": "pull",
+      "approach": "api",
+      "entities": [
+        "post"
+      ],
+      "status": "planned",
+      "open_questions": [
+        "Who owns the property — the client or us?"
+      ]
+    }
+  ],
+  "lifecycle": {
+    "stage": "deploy",
+    "coverage_target": "70% → 95%",
+    "needs_from_client": [
+      "The final version of the brand book",
+      "Access to Google Search Console",
+      "A Mailgun account (or we create our own)"
+    ],
+    "next_steps": [
+      "Launch wf-seo-audit",
+      "A quarterly content plan",
+      "Semantic search (+qdrant) per the upgrade path"
+    ],
+    "updated": "2026-08-09"
+  },
+  "commercial": {
+    "offer": {
+      "type": "Application Stack — Web Application",
+      "price_range": "$5,000–$20,000",
+      "model": "one_time"
+    },
+    "cost_of_ownership": {
+      "items": [
+        {
+          "name": "Server (Directus + Next.js + Trigger)",
+          "usd_month": 30
+        },
+        {
+          "name": "Mailgun",
+          "usd_month": "0–35"
+        },
+        {
+          "name": "Claude API (content writer)",
+          "usd_month": "10–40"
+        }
+      ],
+      "total_usd_month": "40–105"
+    }
+  }
+}

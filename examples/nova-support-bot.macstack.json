@@ -1,0 +1,824 @@
+{
+  "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
+  "$comment": "EXAMPLE 3/3: a SUBSTACK of the NOVA Trade organization — Telegram support bot (Agents Stack, L2, headless: data + workflows, no UI). Demonstrates: an agents stack without a prototype (built from scratch), a separate triggers collection (webhook + 3 crons), RAG on Qdrant, a managed agent with invocations (started from a workflow and via API), a cross-stack client replica from root, a process with automation_mode: agent.",
+  "macstack": "1.0",
+  "name": "nova-support-bot",
+  "version": "0.9.0",
+  "description": "NOVA Trade — customer support Telegram bot: knowledge-base RAG, human escalation, daily summary (Agents Stack: PostgreSQL + Qdrant + n8n + Trigger.dev)",
+  "stacks": {
+    "role": "substack",
+    "root": {
+      "id": "nova-root",
+      "ref": "github:nova-trade/nova-root"
+    }
+  },
+  "identity": {
+    "title": "NOVA Support Bot",
+    "client": "NOVA Trade",
+    "organization": "nova-trade",
+    "kind": "project",
+    "business_domain": "support"
+  },
+  "profile": {
+    "type": "agents",
+    "stack_level": "L2",
+    "architecture_patterns": [
+      "rag",
+      "event-bus"
+    ],
+    "development_approach": "hybrid",
+    "purposes": [
+      "workflow_execution",
+      "domain_knowledge"
+    ],
+    "operation_modes": [
+      "api_mcp"
+    ]
+  },
+  "results": [
+    {
+      "id": "support-deflection",
+      "name": "Tickets are closed by the bot without an operator",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "tickets deflected/mo",
+        "target": 150,
+        "cadence": "recurring"
+      },
+      "value_usd_month": "$800–$1,500 saved on an operator",
+      "problem": "Support answers the same questions by hand; the queue piles up overnight",
+      "produced_by": [
+        "support-triage"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "fresh-kb",
+      "name": "The knowledge base is fresh and covers the frequent questions",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "% of questions answered from the KB",
+        "target": 80,
+        "cadence": "recurring"
+      },
+      "problem": "Answers are scattered across chats, the KB goes stale",
+      "produced_by": [
+        "kb-maintenance"
+      ],
+      "status": "in_progress"
+    }
+  ],
+  "processes": [
+    {
+      "id": "support-triage",
+      "name": "Ticket triage",
+      "type": "operations",
+      "automation_mode": "agent",
+      "description": "The managed agent answers from the KB on its own; on low confidence or negativity it escalates to a human",
+      "tasks": [
+        {
+          "id": "intake-message",
+          "name": "Receive the Telegram message",
+          "workflow": "wf-ticket-intake"
+        },
+        {
+          "id": "answer-or-escalate",
+          "name": "Bot answer or escalation",
+          "human": {
+            "role": "support-lead",
+            "gate": "review"
+          }
+        }
+      ],
+      "produces": [
+        "support-deflection"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "kb-maintenance",
+      "name": "Knowledge base upkeep",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "schedule": "nightly",
+      "tasks": [
+        {
+          "id": "embed-articles",
+          "name": "Reindex the KB into vectors",
+          "workflow": "wf-kb-embed"
+        },
+        {
+          "id": "gap-report",
+          "name": "Report on unanswered questions",
+          "workflow": "wf-daily-summary"
+        }
+      ],
+      "produces": [
+        "fresh-kb"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "client-context-sync",
+      "name": "Sync client context from the organization",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "tasks": [
+        {
+          "id": "sync-clients",
+          "workflow": "wf-client-sync"
+        }
+      ],
+      "produces": [
+        "support-deflection"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trg-tg-message",
+      "type": "webhook",
+      "software": "n8n",
+      "instance": "n8n-bot",
+      "config": {
+        "path": "/hooks/telegram"
+      }
+    },
+    {
+      "id": "trg-nightly-0200",
+      "type": "schedule",
+      "software": "trigger-dev",
+      "instance": "trigger-bot",
+      "config": {
+        "schedule": "0 2 * * *"
+      }
+    },
+    {
+      "id": "trg-daily-0800",
+      "type": "schedule",
+      "software": "trigger-dev",
+      "instance": "trigger-bot",
+      "config": {
+        "schedule": "0 8 * * *"
+      }
+    },
+    {
+      "id": "trg-hourly-sync",
+      "type": "schedule",
+      "software": "n8n",
+      "instance": "n8n-bot",
+      "config": {
+        "schedule": "0 * * * *"
+      }
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf-ticket-intake",
+      "name": "Support - Ticket Intake - OnTelegramMessage",
+      "engine": "n8n",
+      "software": "n8n",
+      "triggers": [
+        "trg-tg-message"
+      ],
+      "invocation": [
+        "webhook",
+        "trigger"
+      ],
+      "implements": "support-triage",
+      "uses": [
+        "ticket",
+        "kb-article"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-kb-embed",
+      "name": "KB - Reindex Embeddings - Nightly",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-nightly-0200"
+      ],
+      "execution": "background",
+      "invocation": [
+        "mcp",
+        "cli",
+        "trigger"
+      ],
+      "implements": "kb-maintenance",
+      "uses": [
+        "kb-article"
+      ],
+      "location": "src/trigger/kb-embed.ts",
+      "status": "implemented"
+    },
+    {
+      "id": "wf-daily-summary",
+      "name": "Support - Daily Summary - Cron",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-daily-0800"
+      ],
+      "execution": "background",
+      "invocation": [
+        "mcp",
+        "trigger"
+      ],
+      "implements": "kb-maintenance",
+      "uses": [
+        "ticket"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-client-sync",
+      "name": "Clients - Sync From Org - Hourly",
+      "engine": "n8n",
+      "software": "n8n",
+      "triggers": [
+        "trg-hourly-sync"
+      ],
+      "invocation": [
+        "api",
+        "trigger"
+      ],
+      "implements": "client-context-sync",
+      "uses": [
+        "client",
+        "nova-root:client"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "software": [
+    {
+      "id": "postgresql",
+      "category": "databases",
+      "type": "ready_made",
+      "form": [
+        "cli",
+        "api_service"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data"
+      ],
+      "role": "Tickets, KB articles, client replica",
+      "value": "data",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "pg-bot",
+          "environment": "prod",
+          "server": "nova-server-2",
+          "url_env": "POSTGRES_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "qdrant",
+      "category": "databases",
+      "type": "ready_made",
+      "form": [
+        "web",
+        "api_service"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data"
+      ],
+      "role": "Vector index of the knowledge base (RAG)",
+      "value": "data",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "qdrant-bot",
+          "environment": "prod",
+          "url_env": "QDRANT_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "n8n",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Telegram webhook intake, routing, escalations",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "n8n-bot",
+          "environment": "prod",
+          "url_env": "N8N_API_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "trigger-dev",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web",
+        "cli"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Nightly reindexing, summaries; code lives in this repo",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "trigger-bot",
+          "environment": "prod",
+          "url_env": "TRIGGER_API_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "telegram-bot-api",
+      "category": "communication",
+      "type": "ready_made",
+      "form": [
+        "api_service"
+      ],
+      "license": "saas",
+      "layers": [
+        "interface"
+      ],
+      "role": "The customer communication channel",
+      "value": "interface",
+      "hosting": "saas_cloud",
+      "agentic": {
+        "mcp": false,
+        "api": true,
+        "cli": false,
+        "rating": "basic"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "ticket",
+      "name": "Ticket",
+      "attributes": [
+        {
+          "name": "client",
+          "type": "relation",
+          "relation": "client"
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "answer",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "new",
+            "answered_by_bot",
+            "escalated",
+            "closed"
+          ]
+        },
+        {
+          "name": "confidence",
+          "type": "number"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "instance": "pg-bot",
+          "role": "master",
+          "collection": "tickets"
+        }
+      ],
+      "master": "postgresql",
+      "state_fields": [
+        {
+          "field": "status",
+          "drives": "support-triage"
+        }
+      ]
+    },
+    {
+      "id": "kb-article",
+      "name": "Knowledge base article",
+      "description": "Master — PostgreSQL; Qdrant holds the vector projection (reindexed nightly)",
+      "attributes": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "tags",
+          "type": "json"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "instance": "pg-bot",
+          "role": "master",
+          "collection": "kb_articles"
+        },
+        {
+          "software": "qdrant",
+          "instance": "qdrant-bot",
+          "role": "cache",
+          "collection": "kb_vectors",
+          "sync": "wf-kb-embed"
+        }
+      ],
+      "master": "postgresql"
+    },
+    {
+      "id": "client",
+      "name": "Client",
+      "description": "The MASTER is the organization root stack's client base; this stack keeps only a read replica for answer context",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "segment",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "nova-root:postgresql",
+          "role": "master",
+          "collection": "clients"
+        },
+        {
+          "software": "postgresql",
+          "instance": "pg-bot",
+          "role": "replica",
+          "collection": "clients_mirror",
+          "sync": "wf-client-sync"
+        }
+      ],
+      "master": "nova-root:postgresql"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "tg-bot",
+      "name": "Telegram bot @nova_support_bot",
+      "type": "bot",
+      "audience": "human",
+      "software": "telegram-bot-api",
+      "entities": [
+        "ticket"
+      ],
+      "workflows": [
+        "wf-ticket-intake"
+      ],
+      "languages": [
+        "ru",
+        "en"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "escalation-channel",
+      "name": "Operator escalation channel",
+      "type": "channel",
+      "audience": "human",
+      "software": "telegram-bot-api",
+      "related": [
+        "tg-bot"
+      ],
+      "roles": [
+        "support-lead"
+      ],
+      "workflows": [
+        "wf-ticket-intake"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "agent-api",
+      "name": "MCP/API access for the organization's agents",
+      "type": "api_portal",
+      "audience": "agent",
+      "mode": "api_mcp",
+      "entities": [
+        "ticket",
+        "kb-article"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "connections": {
+    "mcp": [
+      {
+        "id": "postgresql-mcp",
+        "software": "postgresql",
+        "instance": "pg-bot",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "POSTGRESQL_MCP_URL",
+        "capabilities": "Tickets, KB, client replica"
+      },
+      {
+        "id": "qdrant-mcp",
+        "software": "qdrant",
+        "instance": "qdrant-bot",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "QDRANT_URL",
+        "capabilities": "Semantic search over the KB"
+      },
+      {
+        "id": "n8n-mcp",
+        "software": "n8n",
+        "instance": "n8n-bot",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "N8N_API_URL",
+        "capabilities": "Run workflows"
+      },
+      {
+        "id": "trigger-mcp",
+        "software": "trigger-dev",
+        "instance": "trigger-bot",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "TRIGGER_API_URL",
+        "capabilities": "Reindexing, summaries"
+      }
+    ],
+    "apis": [
+      {
+        "software": "telegram-bot-api",
+        "kind": "rest",
+        "url_env": "TELEGRAM_API_URL"
+      }
+    ]
+  },
+  "agents": {
+    "stack_agents": [
+      {
+        "id": "claude-code-bot",
+        "name": "Claude Code — bot worker",
+        "runtime": "claude-code",
+        "hierarchy_role": "worker",
+        "instance": "nova-support-bot (this repo's directory)",
+        "tier": 1,
+        "reads_stack": true,
+        "can_modify_stack": true,
+        "modes": [
+          "manual",
+          "headless"
+        ],
+        "model": "anthropic/claude-sonnet",
+        "access": [
+          "postgresql-mcp",
+          "qdrant-mcp",
+          "n8n-mcp",
+          "trigger-mcp"
+        ],
+        "context_packs": [
+          "Support Bot Dev Pack"
+        ],
+        "billing": "subscription_oauth",
+        "invocations": [
+          {
+            "via": "manual"
+          }
+        ]
+      }
+    ],
+    "managed_agents": [
+      {
+        "id": "support-agent",
+        "name": "Support agent (answers customers)",
+        "role": "Answers tickets from the knowledge base with the client segment in mind; escalates on low confidence",
+        "model": "anthropic/claude-haiku",
+        "instructions": "Answer briefly and kindly, only from the NOVA knowledge base; if confidence < 0.7 or the client is unhappy — escalate to an operator; never promise deadlines or discounts",
+        "instructions_ref": "docs/agents/support-agent.md",
+        "tools": {
+          "mcp": [
+            "qdrant-mcp",
+            "postgresql-mcp"
+          ],
+          "workflows": [
+            "wf-ticket-intake"
+          ],
+          "apis": [
+            "telegram-bot-api"
+          ]
+        },
+        "knowledge_base": "NOVA KB (kb-article → qdrant)",
+        "languages": [
+          "ru",
+          "en"
+        ],
+        "available_to": [
+          "support-lead"
+        ],
+        "invocations": [
+          {
+            "via": "workflow",
+            "workflow": "wf-ticket-intake"
+          },
+          {
+            "via": "api"
+          }
+        ]
+      }
+    ]
+  },
+  "context": {
+    "plugins": {
+      "technology": [
+        "postgresql-external-dev",
+        "n8n-dev",
+        "trigger-dev"
+      ],
+      "process": [],
+      "stack": []
+    },
+    "packs": [
+      {
+        "name": "Support Bot Dev Pack",
+        "type": "development",
+        "plugins": [
+          "postgresql-external-dev",
+          "n8n-dev",
+          "trigger-dev"
+        ]
+      }
+    ],
+    "platforms": [
+      "claude-code"
+    ],
+    "marketplaces": [
+      "agents-store-claude-plugins"
+    ]
+  },
+  "roles": [
+    {
+      "id": "support-lead",
+      "name": "Support lead",
+      "sees": "Tickets, KB, escalations",
+      "can": "Edit the KB, answer escalations, review bot answers"
+    }
+  ],
+  "resources": {
+    "accesses": [
+      {
+        "env": "TELEGRAM_BOT_TOKEN",
+        "required": true,
+        "source": "infisical",
+        "for": "telegram-bot-api",
+        "provided_by": "us"
+      },
+      {
+        "env": "POSTGRES_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "POSTGRESQL_MCP_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "QDRANT_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "qdrant",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_KEY",
+        "required": true,
+        "source": "infisical",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_API_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_SECRET_KEY",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "ANTHROPIC_API_KEY",
+        "required": true,
+        "source": "infisical",
+        "provided_by": "us"
+      }
+    ],
+    "bindings": {
+      "infisical": {
+        "workspaceName": "nova-support-bot",
+        "defaultEnvironment": "prod"
+      }
+    }
+  },
+  "lifecycle": {
+    "stage": "test",
+    "coverage_target": "70% → 95%",
+    "needs_from_client": [
+      "An export of FAQs and internal policies for the KB",
+      "Escalation rules (who is on duty)"
+    ],
+    "next_steps": [
+      "Push deflection up to 150/mo",
+      "A/B test the support agent's prompt",
+      "Voice messages (later)"
+    ],
+    "updated": "2026-08-09"
+  },
+  "commercial": {
+    "offer": {
+      "type": "Agents Stack",
+      "price_range": "$3,000–$10,000",
+      "model": "one_time"
+    },
+    "cost_of_ownership": {
+      "items": [
+        {
+          "name": "Server (PG + Qdrant + n8n + Trigger)",
+          "usd_month": 25
+        },
+        {
+          "name": "Claude API (support agent, haiku)",
+          "usd_month": "15–50"
+        }
+      ],
+      "total_usd_month": "40–75"
+    }
+  }
+}

@@ -1,0 +1,737 @@
+{
+  "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
+  "$comment": "EXAMPLE 1/3: ROOT stack of the NOVA Trade organization (a typical B2B company). The organization's core Agents Workspace on composable-stack-v1: unified client base, tasks, org orchestrator. Holds the substacks registry and the shared agents. The cross-stack namespace 'nova-root' is used by the sub-stacks.",
+  "macstack": "1.0",
+  "name": "nova-root",
+  "version": "1.0.0",
+  "description": "NOVA Trade — the organization's root workspace: client base, tasks, org agents (composable-stack-v1: PostgreSQL + NocoDB + n8n + Trigger.dev)",
+  "prototype": "github:stackmakers-ai/project-composable-stack-v1",
+  "stacks": {
+    "role": "root",
+    "substacks": [
+      {
+        "id": "nova-website",
+        "ref": "github:nova-trade/nova-website",
+        "note": "marketing website + blog (Application/Web)"
+      },
+      {
+        "id": "nova-support-bot",
+        "ref": "github:nova-trade/nova-support-bot",
+        "note": "Telegram support bot (Agents Stack, headless)"
+      }
+    ]
+  },
+  "identity": {
+    "title": "NOVA Trade — Org Workspace",
+    "client": "NOVA Trade",
+    "organization": "nova-trade",
+    "kind": "workspace",
+    "business_domain": "ops"
+  },
+  "profile": {
+    "type": "composable",
+    "stack_level": "L3",
+    "stack_version": "v1",
+    "architecture_patterns": [
+      "database-first",
+      "hub-and-spoke"
+    ],
+    "development_approach": "low-code",
+    "purposes": [
+      "workflow_execution",
+      "domain_knowledge"
+    ],
+    "operation_modes": [
+      "ui",
+      "api_mcp",
+      "hybrid"
+    ]
+  },
+  "goals": [
+    {
+      "id": "single-source-of-truth",
+      "name": "One operating system for the company",
+      "statement": "All NOVA Trade clients, tasks and processes live in one workspace; the sub-stacks read from and write to it",
+      "horizon": "2026-12-31",
+      "metric": {
+        "unit": "% of operations in the workspace",
+        "target": 90
+      },
+      "owner": "ceo",
+      "status": "in_progress"
+    }
+  ],
+  "results": [
+    {
+      "id": "unified-client-base",
+      "name": "A unified client base with zero duplicates",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "% duplicates",
+        "target": 0,
+        "cadence": "recurring"
+      },
+      "problem": "Clients are scattered across spreadsheets, email and chats — duplicates and losses",
+      "goal": "single-source-of-truth",
+      "produced_by": [
+        "client-management"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "weekly-ops-digest",
+      "name": "A weekly operations digest for the CEO",
+      "class": "cost_saving",
+      "metric": {
+        "unit": "reports/mo",
+        "target": 4,
+        "cadence": "recurring"
+      },
+      "problem": "Status of affairs is assembled manually from bits and pieces",
+      "goal": "single-source-of-truth",
+      "produced_by": [
+        "ops-reporting"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "processes": [
+    {
+      "id": "client-management",
+      "name": "Client base management",
+      "type": "operations",
+      "automation_mode": "hybrid",
+      "tasks": [
+        {
+          "id": "dedup-clients",
+          "name": "Deduplicate clients",
+          "workflow": "wf-client-dedup"
+        },
+        {
+          "id": "enrich-clients",
+          "name": "Enrich client cards",
+          "workflow": "wf-client-enrich"
+        }
+      ],
+      "produces": [
+        "unified-client-base"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "ops-reporting",
+      "name": "Operations reporting",
+      "type": "operations",
+      "automation_mode": "workflow",
+      "tasks": [
+        {
+          "id": "weekly-digest",
+          "workflow": "wf-ops-digest"
+        }
+      ],
+      "produces": [
+        "weekly-ops-digest"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "org-provisioning",
+      "name": "Workspace provisioning (tables, views, roles)",
+      "type": "provisioning",
+      "automation_mode": "agent",
+      "skill": "nocodb-dev:create-table",
+      "produces": [
+        "unified-client-base"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trg-nightly-0300",
+      "type": "schedule",
+      "software": "n8n",
+      "instance": "n8n-nova",
+      "config": {
+        "schedule": "0 3 * * *"
+      }
+    },
+    {
+      "id": "trg-client-created",
+      "type": "webhook",
+      "software": "n8n",
+      "instance": "n8n-nova",
+      "config": {
+        "path": "/hooks/client-created"
+      }
+    },
+    {
+      "id": "trg-monday-0700",
+      "type": "schedule",
+      "software": "trigger-dev",
+      "instance": "trigger-nova",
+      "config": {
+        "schedule": "0 7 * * 1"
+      }
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf-client-dedup",
+      "name": "Clients - Dedup - Nightly",
+      "engine": "n8n",
+      "software": "n8n",
+      "triggers": [
+        "trg-nightly-0300"
+      ],
+      "invocation": [
+        "mcp",
+        "api",
+        "trigger"
+      ],
+      "implements": "client-management",
+      "uses": [
+        "client"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-client-enrich",
+      "name": "Clients - Enrich - OnCreate",
+      "engine": "n8n",
+      "software": "n8n",
+      "triggers": [
+        "trg-client-created"
+      ],
+      "invocation": [
+        "webhook",
+        "trigger"
+      ],
+      "implements": "client-management",
+      "uses": [
+        "client"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "wf-ops-digest",
+      "name": "Ops - Weekly Digest - Cron",
+      "engine": "trigger-dev",
+      "software": "trigger-dev",
+      "triggers": [
+        "trg-monday-0700"
+      ],
+      "execution": "background",
+      "invocation": [
+        "mcp",
+        "cli",
+        "trigger"
+      ],
+      "implements": "ops-reporting",
+      "uses": [
+        "client",
+        "task"
+      ],
+      "location": "src/trigger/ops-digest.ts (this repository)",
+      "status": "implemented"
+    }
+  ],
+  "software": [
+    {
+      "id": "postgresql",
+      "category": "databases",
+      "type": "ready_made",
+      "form": [
+        "cli",
+        "api_service"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data"
+      ],
+      "role": "The organization's shared database — the master of clients and tasks for ALL NOVA stacks",
+      "value": "data",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "pg-nova",
+          "environment": "prod",
+          "server": "nova-server-1",
+          "url_env": "POSTGRES_URL"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "nocodb",
+      "category": "low-code-platforms",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "data",
+        "interface"
+      ],
+      "role": "Spreadsheet interface over the database: clients, tasks, forms",
+      "value": "interface",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "nocodb-nova",
+          "environment": "prod",
+          "url": "https://ops.nova-trade.example",
+          "deploy": "dokploy"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": false,
+        "rating": "good"
+      }
+    },
+    {
+      "id": "n8n",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "Integration automations",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "n8n-nova",
+          "environment": "prod",
+          "url_env": "N8N_API_URL",
+          "deploy": "dokploy"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    },
+    {
+      "id": "trigger-dev",
+      "category": "workflow-engines",
+      "type": "constructor",
+      "form": [
+        "web",
+        "cli"
+      ],
+      "license": "open_source",
+      "layers": [
+        "logic"
+      ],
+      "role": "The organization's durable background jobs; code lives in this repo",
+      "value": "workflows",
+      "hosting": "self_hosted",
+      "instances": [
+        {
+          "id": "trigger-nova",
+          "environment": "prod",
+          "url_env": "TRIGGER_API_URL",
+          "deploy": "docker-compose"
+        }
+      ],
+      "agentic": {
+        "mcp": true,
+        "api": true,
+        "cli": true,
+        "rating": "full"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "client",
+      "name": "Client (company or contact)",
+      "description": "The organization's MASTER entity: sub-stacks reference it cross-stack as 'nova-root:postgresql'",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string"
+        },
+        {
+          "name": "segment",
+          "type": "enum",
+          "values": [
+            "lead",
+            "customer",
+            "partner"
+          ]
+        },
+        {
+          "name": "source",
+          "type": "string"
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "instance": "pg-nova",
+          "role": "master",
+          "collection": "clients"
+        },
+        {
+          "software": "nocodb",
+          "instance": "nocodb-nova",
+          "role": "interface"
+        }
+      ],
+      "master": "postgresql",
+      "state_fields": [
+        {
+          "field": "segment",
+          "drives": "client-management"
+        }
+      ]
+    },
+    {
+      "id": "task",
+      "name": "Task",
+      "attributes": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "assignee",
+          "type": "string"
+        },
+        {
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "open",
+            "in_progress",
+            "done"
+          ]
+        }
+      ],
+      "stores": [
+        {
+          "software": "postgresql",
+          "instance": "pg-nova",
+          "role": "master",
+          "collection": "tasks"
+        },
+        {
+          "software": "nocodb",
+          "instance": "nocodb-nova",
+          "role": "interface"
+        }
+      ],
+      "master": "postgresql"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "ops-workspace",
+      "name": "Operations workspace (tables, kanban, forms)",
+      "type": "spreadsheet",
+      "audience": "human",
+      "mode": "ui",
+      "software": "nocodb",
+      "instances": [
+        "nocodb-nova"
+      ],
+      "path": "/",
+      "roles": [
+        "ceo",
+        "ops-manager"
+      ],
+      "entities": [
+        "client",
+        "task"
+      ],
+      "views": [
+        "table",
+        "kanban",
+        "form"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "tg-ops-channel",
+      "name": "Orchestrator's Telegram channel (commands and digests)",
+      "type": "channel",
+      "audience": "both",
+      "related": [
+        "ops-workspace"
+      ],
+      "workflows": [
+        "wf-ops-digest"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "connections": {
+    "mcp": [
+      {
+        "id": "postgresql-mcp",
+        "software": "postgresql",
+        "instance": "pg-nova",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "POSTGRESQL_MCP_URL",
+        "capabilities": "SQL, JOINs, migrations"
+      },
+      {
+        "id": "nocodb-mcp",
+        "software": "nocodb",
+        "instance": "nocodb-nova",
+        "transport": "http",
+        "auth": "token_env",
+        "url_env": "NOCODB_MCP_URL",
+        "capabilities": "CRUD, views, forms"
+      },
+      {
+        "id": "n8n-mcp",
+        "software": "n8n",
+        "instance": "n8n-nova",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "N8N_API_URL",
+        "capabilities": "Run workflows"
+      },
+      {
+        "id": "trigger-mcp",
+        "software": "trigger-dev",
+        "instance": "trigger-nova",
+        "transport": "stdio",
+        "auth": "token_env",
+        "url_env": "TRIGGER_API_URL",
+        "capabilities": "Trigger tasks, run statuses"
+      }
+    ]
+  },
+  "agents": {
+    "stack_agents": [
+      {
+        "id": "openclaw-nova",
+        "name": "OpenClaw NOVA — the organization's orchestrator",
+        "runtime": "openclaw",
+        "hierarchy_role": "orchestrator",
+        "instance": "openclaw-nova (nova-server-1)",
+        "tier": 1,
+        "reads_stack": false,
+        "can_modify_stack": false,
+        "channels": [
+          "telegram"
+        ],
+        "modes": [
+          "remote_interactive",
+          "remote_autonomous"
+        ],
+        "model": "anthropic/claude-haiku",
+        "access": [
+          "nocodb-mcp",
+          "n8n-mcp"
+        ],
+        "context_packs": [
+          "NOVA Ops Pack"
+        ],
+        "delegates_to": [
+          "claude-code-nova"
+        ],
+        "billing": "api_key",
+        "invocations": [
+          {
+            "via": "channel",
+            "channel": "telegram"
+          }
+        ]
+      },
+      {
+        "id": "claude-code-nova",
+        "name": "Claude Code — workspace worker",
+        "runtime": "claude-code",
+        "hierarchy_role": "worker",
+        "instance": "nova-root (this repo's directory)",
+        "tier": 1,
+        "reads_stack": true,
+        "can_modify_stack": true,
+        "modes": [
+          "manual",
+          "headless"
+        ],
+        "model": "anthropic/claude-sonnet",
+        "access": [
+          "postgresql-mcp",
+          "nocodb-mcp",
+          "n8n-mcp",
+          "trigger-mcp"
+        ],
+        "context_packs": [
+          "NOVA Dev Pack"
+        ],
+        "billing": "subscription_oauth",
+        "state": "--resume + state.json",
+        "invocations": [
+          {
+            "via": "manual"
+          }
+        ]
+      }
+    ]
+  },
+  "context": {
+    "plugins": {
+      "technology": [
+        "postgresql-external-dev",
+        "nocodb-ops",
+        "n8n-dev",
+        "trigger-dev"
+      ],
+      "process": [],
+      "stack": [
+        "stack-composable-stack-v1"
+      ]
+    },
+    "packs": [
+      {
+        "name": "NOVA Ops Pack",
+        "type": "operations",
+        "plugins": [
+          "nocodb-ops"
+        ]
+      },
+      {
+        "name": "NOVA Dev Pack",
+        "type": "development",
+        "plugins": [
+          "stack-composable-stack-v1",
+          "n8n-dev",
+          "trigger-dev"
+        ]
+      }
+    ],
+    "platforms": [
+      "claude-code",
+      "openclaw"
+    ],
+    "marketplaces": [
+      "agents-store-claude-plugins"
+    ]
+  },
+  "roles": [
+    {
+      "id": "ceo",
+      "name": "CEO",
+      "sees": "Everything",
+      "can": "Everything + digests"
+    },
+    {
+      "id": "ops-manager",
+      "name": "Operations manager",
+      "sees": "Clients, tasks",
+      "can": "CRUD on clients and tasks"
+    }
+  ],
+  "resources": {
+    "accesses": [
+      {
+        "env": "POSTGRES_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "POSTGRESQL_MCP_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "postgresql",
+        "provided_by": "us"
+      },
+      {
+        "env": "NOCODB_TOKEN",
+        "required": true,
+        "source": "infisical",
+        "for": "nocodb",
+        "provided_by": "us"
+      },
+      {
+        "env": "NOCODB_MCP_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "nocodb",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "N8N_API_KEY",
+        "required": true,
+        "source": "infisical",
+        "for": "n8n",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_API_URL",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "TRIGGER_SECRET_KEY",
+        "required": true,
+        "source": "infisical",
+        "for": "trigger-dev",
+        "provided_by": "us"
+      },
+      {
+        "env": "TELEGRAM_BOT_TOKEN",
+        "required": false,
+        "source": "infisical",
+        "provided_by": "us"
+      }
+    ],
+    "bindings": {
+      "infisical": {
+        "workspaceName": "nova-root",
+        "defaultEnvironment": "prod"
+      }
+    }
+  },
+  "lifecycle": {
+    "stage": "iterate",
+    "coverage_target": "95%",
+    "next_steps": [
+      "Connect nova-website and nova-support-bot to the shared client base"
+    ],
+    "updated": "2026-08-09"
+  }
+}
