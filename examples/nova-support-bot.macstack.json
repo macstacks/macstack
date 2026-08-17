@@ -682,9 +682,49 @@
   "context": {
     "plugins": {
       "technology": [
-        "postgresql-external-dev",
-        "n8n-dev",
-        "trigger-dev"
+        {
+          "id": "postgresql-external-dev",
+          "covers": [
+            "software",
+            "entities",
+            "connections"
+          ],
+          "scope": [
+            "postgresql",
+            "qdrant"
+          ]
+        },
+        {
+          "id": "n8n-dev",
+          "covers": [
+            "workflows",
+            "triggers",
+            "connections"
+          ],
+          "scope": [
+            "n8n"
+          ]
+        },
+        {
+          "id": "trigger-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "trigger-dev"
+          ]
+        },
+        {
+          "id": "tg-client",
+          "covers": [
+            "interfaces"
+          ],
+          "scope": [
+            "telegram-bot-api"
+          ],
+          "note": "Bot and channel: the only plugin covering this stack's interfaces"
+        }
       ],
       "process": [],
       "stack": []

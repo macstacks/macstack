@@ -1077,16 +1077,80 @@
   "context": {
     "plugins": {
       "technology": [
-        "nocobase-dev",
-        "nocodb-ops",
-        "n8n-dev",
-        "n8n-provision",
-        "trigger-dev",
-        "web-search-dev"
+        {
+          "id": "nocobase-dev",
+          "covers": [
+            "software",
+            "entities",
+            "interfaces",
+            "roles"
+          ],
+          "scope": [
+            "nocobase"
+          ]
+        },
+        {
+          "id": "nocodb-ops",
+          "covers": [
+            "software",
+            "entities"
+          ],
+          "scope": [
+            "nocodb"
+          ]
+        },
+        {
+          "id": "n8n-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "n8n"
+          ]
+        },
+        {
+          "id": "n8n-provision",
+          "covers": [
+            "deployment"
+          ],
+          "scope": [
+            "n8n"
+          ]
+        },
+        {
+          "id": "trigger-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "trigger-dev"
+          ]
+        },
+        {
+          "id": "web-search-dev",
+          "covers": [
+            "integrations"
+          ],
+          "note": "External search and scraping as a data source"
+        }
       ],
       "process": [],
       "stack": [
-        "stack-composable-stack-v1"
+        {
+          "id": "stack-composable-stack-v1",
+          "covers": [
+            "software",
+            "entities",
+            "workflows",
+            "triggers",
+            "interfaces",
+            "connections",
+            "agents",
+            "conventions"
+          ]
+        }
       ]
     },
     "packs": [

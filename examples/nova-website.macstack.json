@@ -749,17 +749,82 @@
   "context": {
     "plugins": {
       "technology": [
-        "directus-dev",
-        "nextjs-dev",
-        "nextjs-provision",
-        "trigger-dev",
-        "seo-dev"
+        {
+          "id": "directus-dev",
+          "covers": [
+            "software",
+            "entities",
+            "roles",
+            "data-migration"
+          ],
+          "scope": [
+            "directus"
+          ]
+        },
+        {
+          "id": "nextjs-dev",
+          "covers": [
+            "software",
+            "interfaces"
+          ],
+          "scope": [
+            "nextjs"
+          ]
+        },
+        {
+          "id": "nextjs-provision",
+          "covers": [
+            "deployment"
+          ],
+          "scope": [
+            "nextjs"
+          ]
+        },
+        {
+          "id": "trigger-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "trigger-dev"
+          ]
+        },
+        {
+          "id": "seo-dev",
+          "covers": [
+            "seo"
+          ],
+          "scope": [
+            "nextjs"
+          ],
+          "note": "Discoverability of the public site only — not how pages are built"
+        }
       ],
       "process": [
-        "media-hosting-ops"
+        {
+          "id": "media-hosting-ops",
+          "covers": [
+            "processes"
+          ],
+          "note": "Storing and serving media as a business process"
+        }
       ],
       "stack": [
-        "stack-directus-nextjs-trigger-dev"
+        {
+          "id": "stack-directus-nextjs-trigger-dev",
+          "covers": [
+            "software",
+            "entities",
+            "workflows",
+            "triggers",
+            "interfaces",
+            "connections",
+            "conventions",
+            "deployment"
+          ],
+          "note": "Architecture descriptor — the default authority; a technology plugin with a matching scope wins over it"
+        }
       ]
     },
     "packs": [

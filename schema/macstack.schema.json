@@ -1386,23 +1386,24 @@
       "properties": {
         "plugins": {
           "type": "object",
+          "description": "Plugins wired into this stack, grouped by plugin type. Each entry declares not only WHICH plugin, but WHAT IT COVERS in this stack (covers[]) — which sections of the stack file it is the reference for. That turns the plugin list from decoration into a routing table: given a task (add a workflow, add an entity), an agent knows which plugin to open instead of loading all of them or guessing.",
           "properties": {
             "technology": {
               "type": "array",
               "items": {
-                "$ref": "#/$defs/slug"
+                "$ref": "#/$defs/pluginRef"
               }
             },
             "process": {
               "type": "array",
               "items": {
-                "$ref": "#/$defs/slug"
+                "$ref": "#/$defs/pluginRef"
               }
             },
             "stack": {
               "type": "array",
               "items": {
-                "$ref": "#/$defs/slug"
+                "$ref": "#/$defs/pluginRef"
               }
             }
           }
@@ -1725,6 +1726,48 @@
     "slug": {
       "type": "string",
       "pattern": "^[a-z0-9]+([-.][a-z0-9]+)*$"
+    },
+    "coverageArea": {
+      "$ref": "#/$defs/slug",
+      "description": "An area a plugin covers, from registry/coverage-areas.json. Two kinds: a SECTION of this stack file (results, processes, triggers, workflows, software, entities, interfaces, connections, agents, roles, resources, integrations) — meaning the plugin teaches you how to build that part of the stack; or a CROSS-CUTTING area not tied to one section (deployment, secrets-env, testing, observability, data-migration, security-access, conventions, documentation, cost-billing). Extension: a new area = a kebab-case slug + a PR to the registry."
+    },
+    "pluginRef": {
+      "description": "A plugin wired into the stack. The object form is canonical: it says what the plugin covers here. A bare slug is the legacy short form, equivalent to {\"id\": slug} with no coverage declared — valid, but the linter warns, because an agent cannot route to a plugin whose coverage is unknown.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/slug"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/slug",
+              "description": "Plugin slug as published in the marketplace"
+            },
+            "covers": {
+              "type": "array",
+              "description": "What this plugin is the reference for IN THIS STACK. Example: directus-dev covers [software, entities, interfaces]; trigger-dev covers [workflows, triggers]; a stack plugin usually covers most sections at once. Values from registry/coverage-areas.json. The linter cross-checks this against the stack itself: a non-empty section that no plugin covers is a gap.",
+              "items": {
+                "$ref": "#/$defs/coverageArea"
+              }
+            },
+            "scope": {
+              "type": "array",
+              "description": "Optional narrowing to the concrete elements this plugin owns — ids from software[], entities[], workflows[], interfaces[]. Needed when several plugins cover the same area: directus-dev covers `interfaces` with scope [directus], nextjs-dev covers `interfaces` with scope [nextjs]. Without scope an overlap is ambiguous and the linter warns.",
+              "items": {
+                "$ref": "#/$defs/slug"
+              }
+            },
+            "note": {
+              "type": "string",
+              "description": "Free-form clarification for a human reader"
+            }
+          }
+        }
+      ]
     },
     "agenticChannel": {
       "anyOf": [

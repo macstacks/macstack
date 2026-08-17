@@ -604,14 +604,63 @@
   "context": {
     "plugins": {
       "technology": [
-        "postgresql-external-dev",
-        "nocodb-ops",
-        "n8n-dev",
-        "trigger-dev"
+        {
+          "id": "postgresql-external-dev",
+          "covers": [
+            "software",
+            "entities",
+            "data-migration"
+          ],
+          "scope": [
+            "postgresql"
+          ]
+        },
+        {
+          "id": "nocodb-ops",
+          "covers": [
+            "software",
+            "interfaces"
+          ],
+          "scope": [
+            "nocodb"
+          ]
+        },
+        {
+          "id": "n8n-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "n8n"
+          ]
+        },
+        {
+          "id": "trigger-dev",
+          "covers": [
+            "workflows",
+            "triggers"
+          ],
+          "scope": [
+            "trigger-dev"
+          ]
+        }
       ],
       "process": [],
       "stack": [
-        "stack-composable-stack-v1"
+        {
+          "id": "stack-composable-stack-v1",
+          "covers": [
+            "software",
+            "entities",
+            "workflows",
+            "triggers",
+            "interfaces",
+            "connections",
+            "agents",
+            "conventions"
+          ]
+        }
       ]
     },
     "packs": [
