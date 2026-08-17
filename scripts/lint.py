@@ -6,7 +6,8 @@ Pass 2: referential-integrity rules of the MACSTACK standard.
 
 Usage:
     python3 scripts/lint.py file.macstack.json [more files...]
-    python3 scripts/lint.py --schema path/or/url --categories path/or/url files...
+    python3 scripts/lint.py --schema path/or/url --categories path/or/url \
+                            --coverage-areas path/or/url files...
 
 Exit code 0 = all files pass (warnings allowed), 1 = errors found.
 """
@@ -26,7 +27,7 @@ def load(ref: str):
     return json.load(open(ref))
 
 
-def lint(doc: dict, categories: set | None):
+def lint(doc: dict, categories: set | None, coverage_areas: set | None = None):
     errors, warnings = [], []
     sids = {s["id"] for s in doc.get("software", [])}
     inst = {s["id"]: {i["id"] for i in s.get("instances", [])} for s in doc.get("software", [])}
@@ -199,6 +200,45 @@ def lint(doc: dict, categories: set | None):
     for t in trids - used_triggers:
         warnings.append(f"trigger {t}: referenced by no workflow or agent")
 
+    # --- plugin coverage: context.plugins[].covers / scope -------------------
+    # Sections a plugin can realistically teach you to build. goals/results/
+    # processes/roles/integrations are authored by the architect, not taught by a
+    # plugin — gap-checking them would only produce fake entries.
+    TOOLED = ["software", "entities", "workflows", "triggers", "interfaces", "connections"]
+    elem_ids = sids | eids | wids | iids
+    plugins = []
+    for group in doc.get("context", {}).get("plugins", {}).values():
+        for p in group:
+            plugins.append({"id": p} if isinstance(p, str) else p)
+
+    covered = set()
+    owners = {}
+    for p in plugins:
+        pid = p.get("id", "?")
+        for c in p.get("covers", []):
+            if coverage_areas is not None and c not in coverage_areas:
+                errors.append(f"plugin {pid}: covers '{c}' not in the coverage registry")
+            covered.add(c)
+            owners.setdefault(c, []).append(p)
+        for sc in p.get("scope", []):
+            if sc not in elem_ids:
+                errors.append(f"plugin {pid}: scope '{sc}' resolves to no declared element")
+        if not p.get("covers"):
+            warnings.append(f"plugin {pid}: no covers — an agent cannot route to it")
+
+    if plugins:
+        for sec in TOOLED:
+            val = doc.get(sec)
+            filled = bool(val) if isinstance(val, list) else bool(val and any(val.values()))
+            if filled and sec not in covered:
+                n = len(val) if isinstance(val, list) else sum(len(v) for v in val.values() if isinstance(v, list))
+                warnings.append(f"coverage gap: {n} {sec} and no plugin covering '{sec}'")
+
+    for area, own in owners.items():
+        if len(own) >= 2 and not any(o.get("scope") for o in own):
+            ids = ", ".join(o.get("id", "?") for o in own)
+            warnings.append(f"ambiguous coverage of '{area}': {ids} — narrow one with scope")
+
     return errors, warnings
 
 
@@ -207,12 +247,16 @@ def main():
     ap.add_argument("files", nargs="+")
     ap.add_argument("--schema", default=str(pathlib.Path(__file__).parent.parent / "schema/macstack.schema.json"))
     ap.add_argument("--categories", default=None, help="path or URL to software-categories.json (registry)")
+    ap.add_argument("--coverage-areas", default=None, help="path or URL to coverage-areas.json (registry)")
     args = ap.parse_args()
 
     schema = load(args.schema)
     categories = None
     if args.categories:
         categories = {c["id"] for c in load(args.categories)["categories"]}
+    coverage_areas = None
+    if args.coverage_areas:
+        coverage_areas = {a["id"] for a in load(args.coverage_areas)["areas"]}
 
     try:
         import jsonschema
@@ -231,7 +275,7 @@ def main():
                 print(f"{f}: SCHEMA ERROR: {e.message} at {'/'.join(map(str, e.path))}")
                 failed = True
                 continue
-        errors, warnings = lint(doc, categories)
+        errors, warnings = lint(doc, categories, coverage_areas)
         for e in errors:
             print(f"{f}: ERROR: {e}")
         for w in warnings:
