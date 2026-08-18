@@ -205,7 +205,8 @@ def lint(doc: dict, categories: set | None, coverage_areas: set | None = None):
     # processes/roles/integrations are authored by the architect, not taught by a
     # plugin — gap-checking them would only produce fake entries.
     TOOLED = ["software", "entities", "workflows", "triggers", "interfaces", "connections"]
-    elem_ids = sids | eids | wids | iids
+    # the id-spaces of the six TOOLED sections, so a scope can narrow any of them
+    elem_ids = sids | eids | wids | iids | trids | mids
     plugins = []
     for group in doc.get("context", {}).get("plugins", {}).values():
         for p in group:
