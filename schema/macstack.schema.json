@@ -151,7 +151,11 @@
         },
         "business_domain": {
           "type": "string",
-          "description": "Business domain (canonical 12: sales, marketing, hr, devops, finance, support, ecommerce, education, product, services, ops, engineering)"
+          "description": "Functional domain — which business function the stack automates (canonical 12: sales, marketing, hr, devops, finance, support, ecommerce, education, product, services, ops, engineering). This is the FUNCTION axis. The client's market vertical is a separate axis — see `industry`."
+        },
+        "industry": {
+          "type": "string",
+          "description": "Market vertical of the client the stack serves, kebab-case slug (seeded from the agents.store catalogue: real-estate, legal, healthcare, logistics). Extensible: a new vertical is a new slug. This is the VERTICAL axis — do not put a business function here, that belongs in `business_domain`. Omit for internal workspaces with no external client. A `sales` stack built for a real-estate agency is business_domain=sales + industry=real-estate."
         },
         "business_archetype": {
           "type": "string"
