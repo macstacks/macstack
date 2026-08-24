@@ -1455,6 +1455,75 @@
         }
       }
     },
+    "docs": {
+      "type": "object",
+      "description": "The project's specification working set — the macstack/ folder. POINTERS ONLY: the markdown files own their text; this section owns where they live, which language their prose is written in, and which ID spaces they allocate. Section anchors (<!-- macstack:section=... -->) and ID tokens are NEVER translated; only headings and prose follow docs.language. docs/ stays the engineering folder — architecture, API conventions and runbooks do not move here.",
+      "properties": {
+        "root": {
+          "type": "string",
+          "default": "macstack",
+          "description": "Folder holding macstack.json and the working documents. The spec resolves as <root>/macstack.json first, then a legacy ./macstack.json; both present is an error."
+        },
+        "language": {
+          "type": "string",
+          "description": "ISO 639-1 / BCP-47 code the documents' PROSE is written in (ru, en, de, uk). Absent = en. Deliberately NOT identity.language: a product can be German while its documents are Russian, and conflating the two hides a real decision."
+        },
+        "files": {
+          "type": "object",
+          "properties": {
+            "user_cases": {
+              "$ref": "#/$defs/docRef",
+              "description": "Cases per role with acceptance lists — the acceptance bar"
+            },
+            "test_cases": {
+              "$ref": "#/$defs/docRef",
+              "description": "How each acceptance bullet of user_cases is verified — one test per bullet, tagged auto or manual. Derived from user_cases; its version names the user_cases version it was derived from."
+            },
+            "business_logic": {
+              "$ref": "#/$defs/docRef",
+              "description": "Product logic in plain words: invariants, and what the platform must refuse"
+            },
+            "open_questions": {
+              "$ref": "#/$defs/docRef",
+              "description": "§A owed by the client · §B deferred engineering, each with its trigger"
+            },
+            "decisions": {
+              "$ref": "#/$defs/docRef",
+              "description": "D-id registry; the rulings themselves live in dirs.decisions"
+            },
+            "log": {
+              "$ref": "#/$defs/docRef",
+              "description": "Append-only journal of intakes and merges; the unprocessed signal is read from it"
+            }
+          }
+        },
+        "dirs": {
+          "type": "object",
+          "properties": {
+            "inbox": {
+              "type": "string",
+              "default": "inbox",
+              "description": "IMMUTABLE client material. Never edited, renamed or deleted; a source already committed elsewhere in the repo is cited by path, not copied."
+            },
+            "decisions": {
+              "type": "string",
+              "default": "decisions",
+              "description": "Dated rulings, each carrying its cost-if-wrong written at decision time"
+            },
+            "deltas": {
+              "type": "string",
+              "default": "deltas",
+              "description": "Analyses of incoming edits — proposals, never a parallel specification"
+            },
+            "reviews": {
+              "type": "string",
+              "default": "reviews",
+              "description": "Conformance audits; each ships with a business-language twin"
+            }
+          }
+        }
+      }
+    },
     "roles": {
       "type": "array",
       "description": "Roles and access (\"sees / can\" + isolation)",
@@ -1472,10 +1541,19 @@
             "type": "string"
           },
           "sees": {
-            "type": "string"
+            "type": "string",
+            "description": "One sentence: the role's thesis, not its case list. The cases live in USER-CASES.md. Lint warns past a sentence."
           },
           "can": {
-            "type": "string"
+            "type": "string",
+            "description": "One sentence: what the role may do, in outline. Detail belongs to acl[] and to USER-CASES.md. Lint warns past a sentence."
+          },
+          "cases": {
+            "type": "array",
+            "description": "Case-ID prefixes or explicit ids this role owns in USER-CASES.md, e.g. ['C-*']. The join between the machine half of a role (id, acl, isolation) and its narrative half. Lint checks it in both directions.",
+            "items": {
+              "type": "string"
+            }
           },
           "acl": {
             "type": "array",
@@ -1649,14 +1727,50 @@
         },
         "open_questions": {
           "type": "array",
+          "description": "Open questions as POINTERS into OPEN-QUESTIONS.md. Prose belongs in the markdown, not here — a question long enough to need a paragraph is a question the JSON cannot keep in sync.",
           "items": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "LEGACY free-text form. Still valid; lint warns and offers conversion to the pointer form."
+              },
+              {
+                "$ref": "#/$defs/openItemRef"
+              }
+            ]
           }
         },
         "needs_from_client": {
           "type": "array",
+          "description": "DERIVED VIEW of the live client-owed rows of OPEN-QUESTIONS.md §A — pointers only. Lint errors if it names a closed item or omits an open client input, so the two cannot disagree.",
           "items": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "LEGACY free-text form. Still valid; lint warns and offers conversion to the pointer form."
+              },
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/openItemRef"
+                  },
+                  {
+                    "properties": {
+                      "id": {
+                        "pattern": "^A[0-9]+$"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Owner and session rulings, as pointers into macstack/decisions/. Prose elsewhere in this file may cite a decision by id only if it resolves here.",
+          "items": {
+            "$ref": "#/$defs/decisionRef"
           }
         },
         "next_steps": {
@@ -1838,6 +1952,113 @@
         "ready_to_connect",
         "out_of_scope"
       ]
+    },
+    "docRef": {
+      "type": "object",
+      "description": "A pointer to one markdown document of the macstack/ folder. The document owns its text; this holds only where it is, who it is for, and which version the spec was reconciled against.",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path relative to docs.root"
+        },
+        "version": {
+          "type": "string",
+          "description": "CHECKED COPY: must equal the version in the document's own header and the last row of its journal table. Mismatch is a lint ERROR."
+        },
+        "updated": {
+          "type": "string",
+          "description": "Date of the last revision (YYYY-MM-DD)"
+        },
+        "audience": {
+          "enum": [
+            "client",
+            "internal",
+            "both"
+          ],
+          "description": "Who the document is written for. A client-facing document has its output language confirmed before writing."
+        },
+        "language": {
+          "type": "string",
+          "description": "Per-document override of docs.language (ISO 639-1)"
+        }
+      }
+    },
+    "openItemRef": {
+      "type": "object",
+      "description": "POINTER to one item of OPEN-QUESTIONS.md — never prose. The markdown owns the text and allocates the id; this holds the machine-readable state. A = owed by the client, B = deferred engineering. Numbers are never reused after a strike-through.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[AB][0-9]+$"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Anchor into the document, e.g. 'OPEN-QUESTIONS.md#a5'"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "answered",
+            "closed",
+            "deferred"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "CHECKED COPY, optional: must equal the first sentence of the referenced markdown item after whitespace normalization. Mismatch is a lint ERROR — this is the one denormalization the standard allows, and it may not rot silently."
+        },
+        "blocks": {
+          "$ref": "#/$defs/refList",
+          "description": "Elements this item blocks, e.g. 'results.first-invoice'"
+        },
+        "closed_by": {
+          "type": "string",
+          "pattern": "^D[0-9]+$",
+          "description": "The decision that closed it → lifecycle.decisions[].id"
+        },
+        "closed_on": {
+          "type": "string",
+          "description": "YYYY-MM-DD"
+        }
+      }
+    },
+    "decisionRef": {
+      "type": "object",
+      "description": "POINTER to one ruling in macstack/decisions/. Exists because prose across the spec cites decisions by id, and a citation that cannot be followed is the same class of defect as a rotted file:line pointer.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^D[0-9]+$"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Path to the rulings file, relative to docs.root"
+        },
+        "date": {
+          "type": "string",
+          "description": "YYYY-MM-DD"
+        },
+        "decided_by": {
+          "enum": [
+            "owner",
+            "session"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        }
+      }
     }
   }
 }
