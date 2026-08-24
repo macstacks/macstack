@@ -1479,6 +1479,10 @@
               "$ref": "#/$defs/docRef",
               "description": "How each acceptance bullet of user_cases is verified — one test per bullet, tagged auto or manual. Derived from user_cases; its version names the user_cases version it was derived from."
             },
+            "tasks": {
+              "$ref": "#/$defs/docRef",
+              "description": "Milestones and tasks — the forward-looking half of the folder. Every task also lives in the team's own task tracker, where the discussion happens; this file is the source of truth for what the work IS."
+            },
             "business_logic": {
               "$ref": "#/$defs/docRef",
               "description": "Product logic in plain words: invariants, and what the platform must refuse"
@@ -1486,6 +1490,10 @@
             "open_questions": {
               "$ref": "#/$defs/docRef",
               "description": "§A owed by the client · §B deferred engineering, each with its trigger"
+            },
+            "changelog": {
+              "$ref": "#/$defs/docRef",
+              "description": "What reached the people who use the product, newest first. Curated from the work and release entries of the log — never a commit history in disguise."
             },
             "decisions": {
               "$ref": "#/$defs/docRef",
@@ -1651,7 +1659,7 @@
         },
         "bindings": {
           "type": "object",
-          "description": "Service bindings (infisical/dokploy/github/plane…)",
+          "description": "Service bindings, keyed by service (secrets manager, PaaS, git host, task tracker…). The task-tracker binding is what lets tooling reconcile TASKS.md with wherever the team actually discusses work — whichever tracker that is.",
           "additionalProperties": {
             "type": "object"
           }
@@ -1775,8 +1783,24 @@
         },
         "next_steps": {
           "type": "array",
+          "description": "What happens next, as POINTERS into TASKS.md. Prose here rots the moment the plan moves; the task ids do not. Legacy free-text entries stay valid and lint offers the conversion.",
           "items": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "LEGACY free-text form."
+              },
+              {
+                "$ref": "#/$defs/taskRef"
+              }
+            ]
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "description": "The milestone list, as pointers into TASKS.md. A milestone is a coherent increment someone could review or demo; its falsifiable done_when checks live in the markdown.",
+          "items": {
+            "$ref": "#/$defs/milestoneRef"
           }
         },
         "updated": {
@@ -2057,6 +2081,66 @@
         "title": {
           "type": "string",
           "maxLength": 120
+        }
+      }
+    },
+    "taskRef": {
+      "type": "object",
+      "description": "POINTER to one task in TASKS.md — never prose. The markdown owns the description, the acceptance and the tracker id; this holds only enough to cross-check.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^M[0-9]+-T[0-9]+$",
+          "description": "Milestone-scoped and permanent, e.g. M11-T9"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Anchor into TASKS.md"
+        },
+        "status": {
+          "enum": [
+            "todo",
+            "doing",
+            "blocked",
+            "done",
+            "dropped"
+          ]
+        },
+        "blocked_by": {
+          "$ref": "#/$defs/refList",
+          "description": "Task ids or open-item ids. An A-id here is how a client question becomes visibly load-bearing."
+        }
+      }
+    },
+    "milestoneRef": {
+      "type": "object",
+      "description": "POINTER to one milestone in TASKS.md. The done_when checks live in the markdown; this holds the id and the state.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^M[0-9]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "status": {
+          "enum": [
+            "todo",
+            "doing",
+            "blocked",
+            "done",
+            "dropped"
+          ]
+        },
+        "ref": {
+          "type": "string"
         }
       }
     }
