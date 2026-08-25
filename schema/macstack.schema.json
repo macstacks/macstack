@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
   "title": "macstack.json",
+  "$comment": "rev 12 - 2026-08-25: docs.files rewritten for the v2 document set. The client half is now overview + user_cases + ux_ui + automation + handbook + open_questions; business_logic, screens and roles_tasks are retired into them. generated/ gains index. readme gets the pointer it needed for the shelf-life rule to apply to it. Format version stays 1.0: this is additive to $defs and docRef is unchanged. Mirrors: plugins/macstack-dev/skills/lint/references/ and VK-OPS/docs/macstack/ - canon macstacks/macstack is pushed separately by the owner.",
   "description": "MACSTACK stack file: meta-information for configuring a Claude project + the business and technical specification of the stack in one standardized JSON. Lives in the project root; CLAUDE.md references it; the macstack-dev Claude plugin (agents.store) parses the file and scaffolds the project structure (nextjs in software → Next.js skeleton). Inheritance: prototype points to a parent macstack.json (GitHub or absolute path); the current file extends/overrides the parent — merge by id (see the spec). Section order is result-first: goals → results → processes → triggers → workflows → software → entities → interfaces → connections → agents → context → resources.",
   "type": "object",
   "required": [
@@ -1471,62 +1472,87 @@
         "files": {
           "type": "object",
           "properties": {
+            "overview": {
+              "$ref": "#/$defs/docRef",
+              "description": "What the product is, its goals, who it is for and the high-level processes - in plain words, plus the glossary that fixes the English terminology. Authored. Names the roles and points at automation, which owns their definition."
+            },
             "user_cases": {
               "$ref": "#/$defs/docRef",
-              "description": "Cases per role with acceptance lists — the acceptance bar"
+              "description": "Cases per role. Each carries a priority, its own UX requirements and an acceptance list whose bullets are individually addressable - the acceptance bar."
             },
-            "test_cases": {
+            "ux_ui": {
               "$ref": "#/$defs/docRef",
-              "description": "How each acceptance bullet of user_cases is verified — one test per bullet, tagged auto or manual. Derived from user_cases; its version names the user_cases version it was derived from."
+              "description": "The interface bar: navigation, empty/loading/error states, responsive behaviour, accessibility and tone once for the whole product, then per screen what is on it, what can be done and what must NOT be visible there. Authored. Feeds interfaces[] id, name, path, roles."
             },
-            "tasks": {
+            "automation": {
               "$ref": "#/$defs/docRef",
-              "description": "Milestones and tasks — the forward-looking half of the folder. Every task also lives in the team's own task tracker, where the discussion happens; this file is the source of truth for what the work IS."
+              "description": "The trigger -> task -> workflow -> role model: who does what, what starts it, and what runs. Authored, read and corrected by the client. Writes the business half of this file: roles, processes[].tasks[], triggers[] and which workflow answers which trigger."
             },
-            "business_logic": {
+            "handbook": {
               "$ref": "#/$defs/docRef",
-              "description": "Product logic in plain words: invariants, and what the platform must refuse"
+              "description": "How to work with the platform, written for the people who will use it. Seeded from the cases and screens, then authored."
             },
             "open_questions": {
               "$ref": "#/$defs/docRef",
-              "description": "§A owed by the client · §B deferred engineering, each with its trigger"
+              "description": "SS A owed by the client - SS B deferred engineering, each with the trigger that ends the deferral."
             },
-            "changelog": {
+            "test_cases": {
               "$ref": "#/$defs/docRef",
-              "description": "What reached the people who use the product, newest first. Curated from the work and release entries of the log — never a commit history in disguise."
+              "description": "How each acceptance bullet is verified - one test per bullet, tagged auto or manual. Derived from user_cases, automation and ux_ui; its version names the versions it was derived from."
+            },
+            "architecture": {
+              "$ref": "#/$defs/docRef",
+              "description": "How the project is built, for the agent building in it - generated from software[], entities[], workflows[], connections and context.plugins."
+            },
+            "index": {
+              "$ref": "#/$defs/docRef",
+              "description": "Generated index of every case, screen and trigger plus the coverage count. The one index allowed to exist, because nobody maintains it by hand."
+            },
+            "readme": {
+              "$ref": "#/$defs/docRef",
+              "description": "The folder's own map, ownership table, ID spaces and loop - generated from the document contract, so the folder cannot describe itself differently from the way it is checked."
+            },
+            "tasks": {
+              "$ref": "#/$defs/docRef",
+              "description": "Milestones and tasks - the forward-looking half of the folder. Every task also lives in the team's own tracker, where the discussion happens; this file is the source of truth for what the work IS."
             },
             "decisions": {
               "$ref": "#/$defs/docRef",
-              "description": "D-id registry; the rulings themselves live in dirs.decisions"
+              "description": "D-id registry grouped by the rulings file that holds the argument."
+            },
+            "changelog": {
+              "$ref": "#/$defs/docRef",
+              "description": "What reached the people who use the product, newest first. Curated from the work and release entries of the log - never a commit history in disguise."
             },
             "log": {
               "$ref": "#/$defs/docRef",
-              "description": "Append-only journal of intakes and merges; the unprocessed signal is read from it"
+              "description": "Append-only journal of intakes, handoffs, merges, work and releases; the unprocessed signal and the development log are both read from it."
             }
           }
         },
         "dirs": {
           "type": "object",
+          "description": "The four folders of the macstack/ layout, plus README.md and macstack.json at the root — six entries in all. The count is deliberate: a specification spread over many files becomes more tedious to review than the code it describes, which is the field's own criticism of spec-driven tooling. A fifth folder needs an argument that beats that.",
           "properties": {
+            "client": {
+              "type": "string",
+              "default": "client",
+              "description": "What a human writes and a client reads — the source of truth for what the product must do. This is the folder you hand over."
+            },
+            "generated": {
+              "type": "string",
+              "default": "generated",
+              "description": "Built from a source, never edited by hand. A hand edit is lost on the next render and lint reports the difference."
+            },
             "inbox": {
               "type": "string",
               "default": "inbox",
-              "description": "IMMUTABLE client material. Never edited, renamed or deleted; a source already committed elsewhere in the repo is cited by path, not copied."
+              "description": "What the client sent, exactly as sent. Immutable."
             },
-            "decisions": {
+            "history": {
               "type": "string",
-              "default": "decisions",
-              "description": "Dated rulings, each carrying its cost-if-wrong written at decision time"
-            },
-            "deltas": {
-              "type": "string",
-              "default": "deltas",
-              "description": "Analyses of incoming edits — proposals, never a parallel specification"
-            },
-            "reviews": {
-              "type": "string",
-              "default": "reviews",
-              "description": "Conformance audits; each ships with a business-language twin"
+              "default": "history",
+              "description": "Journals and records: what happened, what was decided, what was checked, what we sent — plus the plan of work, which is the same working record read forwards."
             }
           }
         }
@@ -2007,6 +2033,17 @@
         "language": {
           "type": "string",
           "description": "Per-document override of docs.language (ISO 639-1)"
+        },
+        "reviewed": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Date this document was last CHECKED AGAINST THE CODE — not the date its text was edited. The two are different facts and conflating them is how a document stays confidently wrong: you can rewrite a sentence in USER-CASES today without ever asking whether the platform still behaves that way. A reviews/<date>-*-conformance.md newer than this date counts as the check and moves it forward."
+        },
+        "freshness_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "How long this document's last check stays good. Lint warns past it and errors past twice it — the same shape the delta age budget already uses (14/30). Set it per document: a business-logic document may outlive a user-cases document, and pretending one number fits both produces either noise or false comfort."
         }
       }
     },
