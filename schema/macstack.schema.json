@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
   "title": "macstack.json",
-  "$comment": "rev 12 - 2026-08-25: docs.files rewritten for the v2 document set. The client half is now overview + user_cases + ux_ui + automation + handbook + open_questions; business_logic, screens and roles_tasks are retired into them. generated/ gains index. readme gets the pointer it needed for the shelf-life rule to apply to it. Format version stays 1.0: this is additive to $defs and docRef is unchanged. Mirrors: plugins/macstack-dev/skills/lint/references/ and VK-OPS/docs/macstack/ - canon macstacks/macstack is pushed separately by the owner.",
+  "$comment": "rev 15 - 2026-08-27: `source` added to workflows[] - the path, relative to the project root, where this workflow lives in code. Names do not bridge the two sides: measured on a live project, code names a workflow for its domain (`attendance`) and the spec names it for its step (`wf-entry-capture`), and only 3 of 17 match. Both namings are right and no normalisation reconciles them, so without the field a code audit either guesses or reports 14 of 17 as missing from a codebase that has all of them - a confident number that is wrong, and work gets scheduled against it. One path may carry more than one workflow; `source` says where it lives, not that it lives there alone. Additive: format version stays 1.0, no $def changed. Mirrors: plugins/macstack-dev/skills/lint/references/ and VK-OPS/docs/macstack/ - canon macstacks/macstack is pushed separately by the owner. ",
   "description": "MACSTACK stack file: meta-information for configuring a Claude project + the business and technical specification of the stack in one standardized JSON. Lives in the project root; CLAUDE.md references it; the macstack-dev Claude plugin (agents.store) parses the file and scaffolds the project structure (nextjs in software → Next.js skeleton). Inheritance: prototype points to a parent macstack.json (GitHub or absolute path); the current file extends/overrides the parent — merge by id (see the spec). Section order is result-first: goals → results → processes → triggers → workflows → software → entities → interfaces → connections → agents → context → resources.",
   "type": "object",
   "required": [
@@ -637,6 +637,15 @@
           },
           "status": {
             "$ref": "#/$defs/status"
+          },
+          "technical": {
+            "type": "boolean",
+            "default": false,
+            "description": "True when this record is infrastructure: it exists in the system but has no place in the client documents. Everything without the flag is expected to be named there, and its absence is a finding."
+          },
+          "source": {
+            "type": "string",
+            "description": "Path from the project root to where this workflow lives in code, e.g. `src/workflows/attendance.ts`. Names alone do not connect the two sides: code names a workflow for its domain, the spec for its step. One file may hold more than one workflow."
           }
         }
       }
@@ -865,6 +874,11 @@
                 ]
               }
             }
+          },
+          "technical": {
+            "type": "boolean",
+            "default": false,
+            "description": "True when this record is infrastructure: it exists in the system but has no place in the client documents. Everything without the flag is expected to be named there, and its absence is a finding."
           }
         }
       }
@@ -997,6 +1011,11 @@
           },
           "volume": {
             "type": "string"
+          },
+          "technical": {
+            "type": "boolean",
+            "default": false,
+            "description": "True when this record is infrastructure: it exists in the system but has no place in the client documents. Everything without the flag is expected to be named there, and its absence is a finding."
           }
         }
       }
@@ -1612,9 +1631,16 @@
                       "read",
                       "update",
                       "delete",
-                      "approve"
+                      "approve",
+                      "download"
                     ]
-                  }
+                  },
+                  "description": "Generic verbs only. A domain-specific right is not a new verb: it is one of these plus a `condition`, plus `fields` when it touches only some of them. `approve_if_is_approver` was `approve` + a condition; `announce_payment_by_role` was `update` restricted to two fields the code already isolates."
+                },
+                "condition": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "The row-level restriction on these actions, in plain words: \"only the confirmation this contact is the named approver for\". Prose on purpose — a predicate language here would be a second, weaker copy of the access rules the code already enforces, and the two would drift. This says WHAT is restricted so a reader knows to go and check; the code says how."
                 }
               }
             }
@@ -1622,6 +1648,166 @@
           "isolation": {
             "type": "string",
             "description": "Tenant isolation (e.g.: by the company field)"
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "description": "What a person must be able to get done, per role — the skeleton of client/USER-CASES.md. The PROSE stays in that document: this holds the ids, the links and the state, so that every check can ask \"does the code do this\" and \"has the client confirmed it\" without parsing a paragraph. acceptance[] holds the ids of the acceptance bullets, never their text — the bullet is the client's sentence and the id is its address.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]-[0-9]{2}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/$defs/slug",
+            "description": "roles[].id — absent for a cross-cutting case"
+          },
+          "priority": {
+            "enum": [
+              "critical",
+              "important",
+              "nice-to-have"
+            ]
+          },
+          "screens": {
+            "description": "interfaces[].id",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "triggers": {
+            "description": "triggers[].id",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflow": {
+            "description": "workflows[].id",
+            "type": "string"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptance": {
+            "description": "ids of the acceptance bullets, e.g. C-04.a3 — positional within the case, so inserting one above another moves every id below it",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/$defs/status"
+          }
+        }
+      }
+    },
+    "prohibitions": {
+      "type": "array",
+      "description": "What the platform must REFUSE to do. A prohibition is not a case with a negative name: it has no acceptance list, because the refusal itself is the behaviour, and it belongs to no single role.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^Z-[0-9]{2}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enforced_by": {
+            "description": "workflows[].id or interfaces[].id",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/$defs/status"
+          }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "description": "Rules that hold everywhere and are never negotiated away by a feature. They are stated once here and explained in client/OVERVIEW.md; a change to one is a decision, not an edit.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/slug"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enforced_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/$defs/status"
+          }
+        }
+      }
+    },
+    "glossary": {
+      "type": "array",
+      "description": "Terms the project uses in one exact sense. A domain word that is already Latin stays as it is — translating a term out of a contract makes it less precise, not more.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "term"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/slug"
+          },
+          "term": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "domain",
+              "platform",
+              "legal",
+              "technical"
+            ]
+          },
+          "see": {
+            "description": "entities[].id or workflows[].id this term names",
+            "type": "string"
           }
         }
       }
