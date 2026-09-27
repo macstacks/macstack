@@ -1,26 +1,26 @@
 {
   "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
-  "$comment": "EXAMPLE 2/3: a SUBSTACK of the NOVA Trade organization — marketing website + blog (Application Stack / Web Application, Directus + Next.js + Trigger.dev). Demonstrates: substack → root, a cross-stack entity master (leads flow into the root stack's client base), the triggers collection (form/db_event/manual/schedule), a managed agent with invocations via workflow, interfaces with a path relative to the instance, a full commercial layer.",
+  "$comment": "EXAMPLE 2/3: a SUBSTACK of the Acme Trade organization — marketing website + blog (Application Stack / Web Application, Directus + Next.js + Trigger.dev). Demonstrates: substack → root, a cross-stack entity master (leads flow into the root stack's client base), the triggers collection (form/db_event/manual/schedule), a managed agent with invocations via workflow, interfaces with a path relative to the instance, a full commercial layer.",
   "macstack": "1.0",
-  "name": "nova-website",
+  "name": "acme-website",
   "version": "1.2.0",
-  "description": "NOVA Trade — marketing website with a blog and lead generation (Directus CMS + Next.js + Trigger.dev)",
-  "prototype": "github:stackmakers-ai/project-directus-nextjs-trigger-dev",
+  "description": "Acme Trade — marketing website with a blog and lead generation (Directus CMS + Next.js + Trigger.dev)",
+  "prototype": "github:acme-templates/project-directus-nextjs-trigger-dev",
   "stacks": {
     "role": "substack",
     "root": {
-      "id": "nova-root",
-      "ref": "github:nova-trade/nova-root"
+      "id": "acme-root",
+      "ref": "github:acme-trade/acme-root"
     }
   },
   "identity": {
-    "title": "NOVA Trade Website",
-    "client": "NOVA Trade",
-    "organization": "nova-trade",
+    "title": "Acme Trade Website",
+    "client": "Acme Trade",
+    "organization": "acme-trade",
     "kind": "project",
     "business_domain": "marketing",
     "domains": [
-      "nova-trade.example"
+      "acme-trade.example"
     ]
   },
   "profile": {
@@ -59,7 +59,7 @@
     {
       "id": "grow-inbound",
       "name": "Inbound sales channel",
-      "statement": "By year end, 50% of new NOVA clients come from the website",
+      "statement": "By year end, 50% of new ACME clients come from the website",
       "horizon": "2026-12-31",
       "metric": {
         "unit": "% new clients from site",
@@ -86,7 +86,7 @@
         "lead-capture"
       ],
       "feeds": [
-        "nova-root:client-management"
+        "acme-root:client-management"
       ],
       "status": "implemented"
     },
@@ -228,7 +228,7 @@
       "id": "trg-monday-0600",
       "type": "schedule",
       "software": "trigger-dev",
-      "instance": "trigger-nova",
+      "instance": "trigger-acme",
       "config": {
         "schedule": "0 6 * * 1"
       }
@@ -269,7 +269,7 @@
       "implements": "lead-capture",
       "uses": [
         "lead",
-        "nova-root:client"
+        "acme-root:client"
       ],
       "location": "src/trigger/lead-sync.ts",
       "retry": "3 attempts, exponential backoff",
@@ -384,7 +384,7 @@
         {
           "id": "site-prod",
           "environment": "prod",
-          "url": "https://nova-trade.example",
+          "url": "https://acme-trade.example",
           "deploy": "dokploy"
         }
       ],
@@ -412,7 +412,7 @@
       "hosting": "self_hosted",
       "instances": [
         {
-          "id": "trigger-nova",
+          "id": "trigger-acme",
           "environment": "prod",
           "url_env": "TRIGGER_API_URL",
           "deploy": "docker-compose"
@@ -526,7 +526,7 @@
       ],
       "stores": [
         {
-          "software": "nova-root:postgresql",
+          "software": "acme-root:postgresql",
           "role": "master",
           "collection": "clients",
           "sync": "wf-lead-sync"
@@ -538,7 +538,7 @@
           "collection": "leads_inbox"
         }
       ],
-      "master": "nova-root:postgresql"
+      "master": "acme-root:postgresql"
     },
     {
       "id": "case-study",
@@ -666,7 +666,7 @@
       {
         "id": "trigger-mcp",
         "software": "trigger-dev",
-        "instance": "trigger-nova",
+        "instance": "trigger-acme",
         "transport": "stdio",
         "auth": "token_env",
         "url_env": "TRIGGER_API_URL",
@@ -688,7 +688,7 @@
         "name": "Claude Code — website worker",
         "runtime": "claude-code",
         "hierarchy_role": "worker",
-        "instance": "nova-website (this repo's directory)",
+        "instance": "acme-website (this repo's directory)",
         "tier": 1,
         "reads_stack": true,
         "can_modify_stack": true,
@@ -717,9 +717,9 @@
       {
         "id": "content-writer",
         "name": "AI Content Writer",
-        "role": "SEO article drafts per the content plan and the NOVA brand book",
+        "role": "SEO article drafts per the content plan and the ACME brand book",
         "model": "anthropic/claude-sonnet-4.6",
-        "instructions": "Write NOVA Trade blog article drafts per the content plan: B2B expert tone, H2/H3 structure, 1200-1800 words; facts only from the knowledge base",
+        "instructions": "Write Acme Trade blog article drafts per the content plan: B2B expert tone, H2/H3 structure, 1200-1800 words; facts only from the knowledge base",
         "instructions_ref": "docs/agents/content-writer.md",
         "tools": {
           "mcp": [
@@ -729,7 +729,7 @@
             "wf-content-draft"
           ]
         },
-        "knowledge_base": "NOVA brand book + case studies",
+        "knowledge_base": "ACME brand book + case studies",
         "languages": [
           "ru",
           "en"
@@ -907,7 +907,7 @@
     ],
     "bindings": {
       "infisical": {
-        "workspaceName": "nova-website",
+        "workspaceName": "acme-website",
         "defaultEnvironment": "prod"
       },
       "dokploy": {

@@ -1,21 +1,21 @@
 {
   "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
-  "$comment": "EXAMPLE 3/3: a SUBSTACK of the NOVA Trade organization — Telegram support bot (Agents Stack, L2, headless: data + workflows, no UI). Demonstrates: an agents stack without a prototype (built from scratch), a separate triggers collection (webhook + 3 crons), RAG on Qdrant, a managed agent with invocations (started from a workflow and via API), a cross-stack client replica from root, a process with automation_mode: agent.",
+  "$comment": "EXAMPLE 3/3: a SUBSTACK of the Acme Trade organization — Telegram support bot (Agents Stack, L2, headless: data + workflows, no UI). Demonstrates: an agents stack without a prototype (built from scratch), a separate triggers collection (webhook + 3 crons), RAG on Qdrant, a managed agent with invocations (started from a workflow and via API), a cross-stack client replica from root, a process with automation_mode: agent.",
   "macstack": "1.0",
-  "name": "nova-support-bot",
+  "name": "acme-support-bot",
   "version": "0.9.0",
-  "description": "NOVA Trade — customer support Telegram bot: knowledge-base RAG, human escalation, daily summary (Agents Stack: PostgreSQL + Qdrant + n8n + Trigger.dev)",
+  "description": "Acme Trade — customer support Telegram bot: knowledge-base RAG, human escalation, daily summary (Agents Stack: PostgreSQL + Qdrant + n8n + Trigger.dev)",
   "stacks": {
     "role": "substack",
     "root": {
-      "id": "nova-root",
-      "ref": "github:nova-trade/nova-root"
+      "id": "acme-root",
+      "ref": "github:acme-trade/acme-root"
     }
   },
   "identity": {
-    "title": "NOVA Support Bot",
-    "client": "NOVA Trade",
-    "organization": "nova-trade",
+    "title": "ACME Support Bot",
+    "client": "Acme Trade",
+    "organization": "acme-trade",
     "kind": "project",
     "business_domain": "support"
   },
@@ -248,7 +248,7 @@
       "implements": "client-context-sync",
       "uses": [
         "client",
-        "nova-root:client"
+        "acme-root:client"
       ],
       "status": "implemented"
     }
@@ -273,7 +273,7 @@
         {
           "id": "pg-bot",
           "environment": "prod",
-          "server": "nova-server-2",
+          "server": "acme-server-2",
           "url_env": "POSTGRES_URL"
         }
       ],
@@ -495,7 +495,7 @@
       ],
       "stores": [
         {
-          "software": "nova-root:postgresql",
+          "software": "acme-root:postgresql",
           "role": "master",
           "collection": "clients"
         },
@@ -507,13 +507,13 @@
           "sync": "wf-client-sync"
         }
       ],
-      "master": "nova-root:postgresql"
+      "master": "acme-root:postgresql"
     }
   ],
   "interfaces": [
     {
       "id": "tg-bot",
-      "name": "Telegram bot @nova_support_bot",
+      "name": "Telegram bot @acme_support_bot",
       "type": "bot",
       "audience": "human",
       "software": "telegram-bot-api",
@@ -613,7 +613,7 @@
         "name": "Claude Code — bot worker",
         "runtime": "claude-code",
         "hierarchy_role": "worker",
-        "instance": "nova-support-bot (this repo's directory)",
+        "instance": "acme-support-bot (this repo's directory)",
         "tier": 1,
         "reads_stack": true,
         "can_modify_stack": true,
@@ -645,7 +645,7 @@
         "name": "Support agent (answers customers)",
         "role": "Answers tickets from the knowledge base with the client segment in mind; escalates on low confidence",
         "model": "anthropic/claude-haiku",
-        "instructions": "Answer briefly and kindly, only from the NOVA knowledge base; if confidence < 0.7 or the client is unhappy — escalate to an operator; never promise deadlines or discounts",
+        "instructions": "Answer briefly and kindly, only from the ACME knowledge base; if confidence < 0.7 or the client is unhappy — escalate to an operator; never promise deadlines or discounts",
         "instructions_ref": "docs/agents/support-agent.md",
         "tools": {
           "mcp": [
@@ -659,7 +659,7 @@
             "telegram-bot-api"
           ]
         },
-        "knowledge_base": "NOVA KB (kb-article → qdrant)",
+        "knowledge_base": "ACME KB (kb-article → qdrant)",
         "languages": [
           "ru",
           "en"
@@ -822,7 +822,7 @@
     ],
     "bindings": {
       "infisical": {
-        "workspaceName": "nova-support-bot",
+        "workspaceName": "acme-support-bot",
         "defaultEnvironment": "prod"
       }
     }
