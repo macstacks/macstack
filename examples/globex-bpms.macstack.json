@@ -1,23 +1,23 @@
 {
   "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
-  "$comment": "Reference macstack.json example: the MEG/AMPER client BPMS stack on composable-stack-v1 (based on the live demo at dev.m-team.app). Shows every section of the format; env fields hold key NAMES only.",
+  "$comment": "Reference macstack.json example: the GLOBEX/Globex client BPMS stack on composable-stack-v1 (based on the live demo at dev.globex.example). Shows every section of the format; env fields hold key NAMES only.",
   "macstack": "1.0",
-  "name": "meg-bpms",
+  "name": "globex-bpms",
   "version": "1.0.0",
-  "description": "MEG (group of companies) — BPMS: document approval, administrative documents (ORD), tasks, CRM on the composable low-code stack PostgreSQL + NocoBase + NocoDB + n8n + Trigger.dev",
-  "prototype": "github:stackmakers-ai/project-composable-stack-v1",
+  "description": "GLOBEX (group of companies) — BPMS: document approval, administrative documents (ORD), tasks, CRM on the composable low-code stack PostgreSQL + NocoBase + NocoDB + n8n + Trigger.dev",
+  "prototype": "github:acme-templates/project-composable-stack-v1",
   "stacks": {
     "role": "root",
     "substacks": []
   },
   "identity": {
-    "title": "MEG BPMS",
-    "client": "MEG / AMPER",
-    "organization": "meg-group",
+    "title": "Globex BPMS",
+    "client": "Globex",
+    "organization": "globex",
     "kind": "project",
     "business_domain": "ops",
     "domains": [
-      "dev.m-team.app"
+      "dev.globex.example"
     ]
   },
   "profile": {
@@ -43,7 +43,7 @@
     {
       "id": "paperless-group-ops",
       "name": "Running the group of companies without paper routine",
-      "statement": "All approvals and administrative documents of the MEG group flow through one system, without WhatsApp and manual tracking",
+      "statement": "All approvals and administrative documents of the GLOBEX group flow through one system, without WhatsApp and manual tracking",
       "horizon": "2026-12-31",
       "metric": {
         "unit": "% of documents in the system",
@@ -319,7 +319,7 @@
         {
           "id": "pg-main",
           "environment": "prod",
-          "server": "m-team-server",
+          "server": "globex-server",
           "url_env": "POSTGRES_URL"
         }
       ],
@@ -350,13 +350,13 @@
         {
           "id": "nocobase-prod",
           "environment": "prod",
-          "url": "https://m-team.app",
+          "url": "https://globex.example",
           "deploy": "docker-compose"
         },
         {
           "id": "nocobase-dev",
           "environment": "dev",
-          "url": "https://dev.m-team.app",
+          "url": "https://dev.globex.example",
           "deploy": "docker-compose"
         }
       ],
@@ -654,7 +654,7 @@
     },
     {
       "id": "company",
-      "name": "MEG group company",
+      "name": "GLOBEX group company",
       "attributes": [
         {
           "name": "name",
@@ -922,11 +922,11 @@
   "agents": {
     "stack_agents": [
       {
-        "id": "openclaw-meg",
-        "name": "OpenClaw MEG (Telegram orchestrator)",
+        "id": "openclaw-globex",
+        "name": "OpenClaw GLOBEX (Telegram orchestrator)",
         "runtime": "openclaw",
         "hierarchy_role": "orchestrator",
-        "instance": "openclaw-meg",
+        "instance": "openclaw-globex",
         "tier": 1,
         "reads_stack": false,
         "can_modify_stack": false,
@@ -942,10 +942,10 @@
           "n8n-mcp"
         ],
         "context_packs": [
-          "MEG Operations Pack"
+          "GLOBEX Operations Pack"
         ],
         "delegates_to": [
-          "claude-code-meg"
+          "claude-code-globex"
         ],
         "billing": "api_key",
         "invocations": [
@@ -956,11 +956,11 @@
         ]
       },
       {
-        "id": "claude-code-meg",
+        "id": "claude-code-globex",
         "name": "Claude Code (worker in the stack directory)",
         "runtime": "claude-code",
         "hierarchy_role": "worker",
-        "instance": "meg-bpms",
+        "instance": "globex-bpms",
         "tier": 1,
         "reads_stack": true,
         "can_modify_stack": true,
@@ -994,14 +994,14 @@
         "name": "AI Lawyer",
         "role": "Contract analysis, risk clauses, requisites, references to the Civil/Commercial Codes of Ukraine",
         "model": "anthropic/claude-sonnet-4.6",
-        "instructions": "Answer in Ukrainian, address people by name; verify requisites and risk clauses of contracts against the MEG knowledge base",
+        "instructions": "Answer in Ukrainian, address people by name; verify requisites and risk clauses of contracts against the GLOBEX knowledge base",
         "tools": {
           "native": [
             "knowledge-base-retrieve",
             "dataQuery"
           ]
         },
-        "knowledge_base": "MEG knowledge base",
+        "knowledge_base": "GLOBEX knowledge base",
         "languages": [
           "uk"
         ],
@@ -1029,7 +1029,7 @@
             "dataQuery"
           ]
         },
-        "knowledge_base": "MEG knowledge base",
+        "knowledge_base": "GLOBEX knowledge base",
         "languages": [
           "uk"
         ],
@@ -1056,7 +1056,7 @@
             "knowledge-base-retrieve"
           ]
         },
-        "knowledge_base": "MEG knowledge base",
+        "knowledge_base": "GLOBEX knowledge base",
         "languages": [
           "uk"
         ],
@@ -1155,7 +1155,7 @@
     },
     "packs": [
       {
-        "name": "MEG Operations Pack",
+        "name": "GLOBEX Operations Pack",
         "type": "operations",
         "plugins": [
           "nocodb-ops"
@@ -1206,7 +1206,7 @@
           ]
         }
       ],
-      "isolation": "by the company field (an AMPER lawyer cannot see MEG-2/MEG-3 documents)"
+      "isolation": "by the company field (an Globex lawyer cannot see GLX-2/GLX-3 documents)"
     },
     {
       "id": "financier",
@@ -1360,7 +1360,7 @@
     ],
     "bindings": {
       "infisical": {
-        "workspaceName": "meg-bpms",
+        "workspaceName": "globex-bpms",
         "defaultEnvironment": "prod"
       }
     }

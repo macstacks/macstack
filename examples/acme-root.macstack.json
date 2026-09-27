@@ -1,30 +1,30 @@
 {
   "$schema": "https://raw.githubusercontent.com/macstacks/macstack/main/schema/macstack.schema.json",
-  "$comment": "EXAMPLE 1/3: ROOT stack of the NOVA Trade organization (a typical B2B company). The organization's core Agents Workspace on composable-stack-v1: unified client base, tasks, org orchestrator. Holds the substacks registry and the shared agents. The cross-stack namespace 'nova-root' is used by the sub-stacks.",
+  "$comment": "EXAMPLE 1/3: ROOT stack of the Acme Trade organization (a typical B2B company). The organization's core Agents Workspace on composable-stack-v1: unified client base, tasks, org orchestrator. Holds the substacks registry and the shared agents. The cross-stack namespace 'acme-root' is used by the sub-stacks.",
   "macstack": "1.0",
-  "name": "nova-root",
+  "name": "acme-root",
   "version": "1.0.0",
-  "description": "NOVA Trade — the organization's root workspace: client base, tasks, org agents (composable-stack-v1: PostgreSQL + NocoDB + n8n + Trigger.dev)",
-  "prototype": "github:stackmakers-ai/project-composable-stack-v1",
+  "description": "Acme Trade — the organization's root workspace: client base, tasks, org agents (composable-stack-v1: PostgreSQL + NocoDB + n8n + Trigger.dev)",
+  "prototype": "github:acme-templates/project-composable-stack-v1",
   "stacks": {
     "role": "root",
     "substacks": [
       {
-        "id": "nova-website",
-        "ref": "github:nova-trade/nova-website",
+        "id": "acme-website",
+        "ref": "github:acme-trade/acme-website",
         "note": "marketing website + blog (Application/Web)"
       },
       {
-        "id": "nova-support-bot",
-        "ref": "github:nova-trade/nova-support-bot",
+        "id": "acme-support-bot",
+        "ref": "github:acme-trade/acme-support-bot",
         "note": "Telegram support bot (Agents Stack, headless)"
       }
     ]
   },
   "identity": {
-    "title": "NOVA Trade — Org Workspace",
-    "client": "NOVA Trade",
-    "organization": "nova-trade",
+    "title": "Acme Trade — Org Workspace",
+    "client": "Acme Trade",
+    "organization": "acme-trade",
     "kind": "workspace",
     "business_domain": "ops"
   },
@@ -51,7 +51,7 @@
     {
       "id": "single-source-of-truth",
       "name": "One operating system for the company",
-      "statement": "All NOVA Trade clients, tasks and processes live in one workspace; the sub-stacks read from and write to it",
+      "statement": "All Acme Trade clients, tasks and processes live in one workspace; the sub-stacks read from and write to it",
       "horizon": "2026-12-31",
       "metric": {
         "unit": "% of operations in the workspace",
@@ -151,7 +151,7 @@
       "id": "trg-nightly-0300",
       "type": "schedule",
       "software": "n8n",
-      "instance": "n8n-nova",
+      "instance": "n8n-acme",
       "config": {
         "schedule": "0 3 * * *"
       }
@@ -160,7 +160,7 @@
       "id": "trg-client-created",
       "type": "webhook",
       "software": "n8n",
-      "instance": "n8n-nova",
+      "instance": "n8n-acme",
       "config": {
         "path": "/hooks/client-created"
       }
@@ -169,7 +169,7 @@
       "id": "trg-monday-0700",
       "type": "schedule",
       "software": "trigger-dev",
-      "instance": "trigger-nova",
+      "instance": "trigger-acme",
       "config": {
         "schedule": "0 7 * * 1"
       }
@@ -249,14 +249,14 @@
       "layers": [
         "data"
       ],
-      "role": "The organization's shared database — the master of clients and tasks for ALL NOVA stacks",
+      "role": "The organization's shared database — the master of clients and tasks for ALL ACME stacks",
       "value": "data",
       "hosting": "self_hosted",
       "instances": [
         {
-          "id": "pg-nova",
+          "id": "pg-acme",
           "environment": "prod",
-          "server": "nova-server-1",
+          "server": "acme-server-1",
           "url_env": "POSTGRES_URL"
         }
       ],
@@ -284,9 +284,9 @@
       "hosting": "self_hosted",
       "instances": [
         {
-          "id": "nocodb-nova",
+          "id": "nocodb-acme",
           "environment": "prod",
-          "url": "https://ops.nova-trade.example",
+          "url": "https://ops.acme-trade.example",
           "deploy": "dokploy"
         }
       ],
@@ -313,7 +313,7 @@
       "hosting": "self_hosted",
       "instances": [
         {
-          "id": "n8n-nova",
+          "id": "n8n-acme",
           "environment": "prod",
           "url_env": "N8N_API_URL",
           "deploy": "dokploy"
@@ -343,7 +343,7 @@
       "hosting": "self_hosted",
       "instances": [
         {
-          "id": "trigger-nova",
+          "id": "trigger-acme",
           "environment": "prod",
           "url_env": "TRIGGER_API_URL",
           "deploy": "docker-compose"
@@ -361,7 +361,7 @@
     {
       "id": "client",
       "name": "Client (company or contact)",
-      "description": "The organization's MASTER entity: sub-stacks reference it cross-stack as 'nova-root:postgresql'",
+      "description": "The organization's MASTER entity: sub-stacks reference it cross-stack as 'acme-root:postgresql'",
       "attributes": [
         {
           "name": "name",
@@ -389,13 +389,13 @@
       "stores": [
         {
           "software": "postgresql",
-          "instance": "pg-nova",
+          "instance": "pg-acme",
           "role": "master",
           "collection": "clients"
         },
         {
           "software": "nocodb",
-          "instance": "nocodb-nova",
+          "instance": "nocodb-acme",
           "role": "interface"
         }
       ],
@@ -437,13 +437,13 @@
       "stores": [
         {
           "software": "postgresql",
-          "instance": "pg-nova",
+          "instance": "pg-acme",
           "role": "master",
           "collection": "tasks"
         },
         {
           "software": "nocodb",
-          "instance": "nocodb-nova",
+          "instance": "nocodb-acme",
           "role": "interface"
         }
       ],
@@ -459,7 +459,7 @@
       "mode": "ui",
       "software": "nocodb",
       "instances": [
-        "nocodb-nova"
+        "nocodb-acme"
       ],
       "path": "/",
       "roles": [
@@ -496,7 +496,7 @@
       {
         "id": "postgresql-mcp",
         "software": "postgresql",
-        "instance": "pg-nova",
+        "instance": "pg-acme",
         "transport": "http",
         "auth": "token_env",
         "url_env": "POSTGRESQL_MCP_URL",
@@ -505,7 +505,7 @@
       {
         "id": "nocodb-mcp",
         "software": "nocodb",
-        "instance": "nocodb-nova",
+        "instance": "nocodb-acme",
         "transport": "http",
         "auth": "token_env",
         "url_env": "NOCODB_MCP_URL",
@@ -514,7 +514,7 @@
       {
         "id": "n8n-mcp",
         "software": "n8n",
-        "instance": "n8n-nova",
+        "instance": "n8n-acme",
         "transport": "stdio",
         "auth": "token_env",
         "url_env": "N8N_API_URL",
@@ -523,7 +523,7 @@
       {
         "id": "trigger-mcp",
         "software": "trigger-dev",
-        "instance": "trigger-nova",
+        "instance": "trigger-acme",
         "transport": "stdio",
         "auth": "token_env",
         "url_env": "TRIGGER_API_URL",
@@ -534,11 +534,11 @@
   "agents": {
     "stack_agents": [
       {
-        "id": "openclaw-nova",
-        "name": "OpenClaw NOVA — the organization's orchestrator",
+        "id": "openclaw-acme",
+        "name": "OpenClaw ACME — the organization's orchestrator",
         "runtime": "openclaw",
         "hierarchy_role": "orchestrator",
-        "instance": "openclaw-nova (nova-server-1)",
+        "instance": "openclaw-acme (acme-server-1)",
         "tier": 1,
         "reads_stack": false,
         "can_modify_stack": false,
@@ -555,10 +555,10 @@
           "n8n-mcp"
         ],
         "context_packs": [
-          "NOVA Ops Pack"
+          "ACME Ops Pack"
         ],
         "delegates_to": [
-          "claude-code-nova"
+          "claude-code-acme"
         ],
         "billing": "api_key",
         "invocations": [
@@ -569,11 +569,11 @@
         ]
       },
       {
-        "id": "claude-code-nova",
+        "id": "claude-code-acme",
         "name": "Claude Code — workspace worker",
         "runtime": "claude-code",
         "hierarchy_role": "worker",
-        "instance": "nova-root (this repo's directory)",
+        "instance": "acme-root (this repo's directory)",
         "tier": 1,
         "reads_stack": true,
         "can_modify_stack": true,
@@ -589,7 +589,7 @@
           "trigger-mcp"
         ],
         "context_packs": [
-          "NOVA Dev Pack"
+          "ACME Dev Pack"
         ],
         "billing": "subscription_oauth",
         "state": "--resume + state.json",
@@ -665,14 +665,14 @@
     },
     "packs": [
       {
-        "name": "NOVA Ops Pack",
+        "name": "ACME Ops Pack",
         "type": "operations",
         "plugins": [
           "nocodb-ops"
         ]
       },
       {
-        "name": "NOVA Dev Pack",
+        "name": "ACME Dev Pack",
         "type": "development",
         "plugins": [
           "stack-composable-stack-v1",
@@ -770,7 +770,7 @@
     ],
     "bindings": {
       "infisical": {
-        "workspaceName": "nova-root",
+        "workspaceName": "acme-root",
         "defaultEnvironment": "prod"
       }
     }
@@ -779,7 +779,7 @@
     "stage": "iterate",
     "coverage_target": "95%",
     "next_steps": [
-      "Connect nova-website and nova-support-bot to the shared client base"
+      "Connect acme-website and acme-support-bot to the shared client base"
     ],
     "updated": "2026-08-09"
   }
