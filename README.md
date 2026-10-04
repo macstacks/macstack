@@ -13,7 +13,8 @@ in one file:
 The file reads **result-first**, top to bottom: goals → results → processes →
 triggers → workflows → software → entities → interfaces → connections → agents →
 context → resources. A process with no result is "coding for coding's sake" — the
-linter rejects it.
+linter rejects it (a process that lists no result in `produces` and that no result
+names in `produced_by`).
 
 ## This repository
 
@@ -22,6 +23,7 @@ linter rejects it.
 | [`schema/macstack.schema.json`](schema/macstack.schema.json) | The JSON Schema (draft 2020-12) — the single source of truth for structure and enums |
 | [`examples/`](examples/) | Complete example files: an organization root workspace, an application substack, a headless agents stack, a client BPMS |
 | [`scripts/lint.py`](scripts/lint.py) | The reference linter: schema pass + referential-integrity pass |
+| [`scripts/test_lint.py`](scripts/test_lint.py) | The linter's tests (plain `unittest`, no network): `python3 scripts/test_lint.py` |
 
 Reusable building blocks (software passports, entity templates, trigger presets,
 agent presets, the category registry) live in
@@ -43,8 +45,30 @@ autocomplete and validate as you type:
 ```bash
 pip install jsonschema
 python3 scripts/lint.py path/to/macstack.json \
-  --categories https://raw.githubusercontent.com/macstacks/registry/main/software-categories.json
+  --categories     https://raw.githubusercontent.com/macstacks/registry/main/software-categories.json \
+  --coverage-areas https://raw.githubusercontent.com/macstacks/registry/main/coverage-areas.json \
+  --marketplace    https://raw.githubusercontent.com/Agents-Store/claude-plugins/main/.claude-plugin/marketplace.json
 ```
+
+Each flag turns one check on; without it that check is skipped, so a bare
+`python3 scripts/lint.py file.json` works offline. All of them take a local path or an
+`https://` URL except `--root`.
+
+| Flag | What it checks |
+|---|---|
+| `--categories` | every `software[].category` is in the registry |
+| `--coverage-areas` | every plugin `covers` value is a registry area |
+| `--marketplace` (repeatable) | every plugin in `context.plugins` / `context.packs` and every `plugin:` skill prefix is a `plugins[].name` of a marketplace; a removed or renamed plugin says so |
+| `--prototype` (repeatable, nearest parent first) | merges the parent file(s) by id before the integrity pass, so ids inherited from a prototype resolve; cycles in the chain are an error. Without it, an unknown id in a file that sets `prototype` is a *warning* saying it may come from there. One linted file per run |
+| `--root DIR` | every `workflows[].source` exists relative to the project root `DIR` |
+
+Always on: duplicate ids, a process with no result, secret-looking values in env-name
+fields (the message names the field, never the value), `managed_agents[].tools.*` that
+resolve to nothing, and a warning for each deprecated task/milestone status
+(`doing`, `blocked`, `dropped`; use the tracker five `backlog · todo · in_progress ·
+done · cancelled`).
+
+Run the linter's own tests before changing it: `python3 scripts/test_lint.py`.
 
 ## Key concepts (30 seconds)
 
