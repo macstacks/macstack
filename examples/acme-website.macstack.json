@@ -803,11 +803,11 @@
       ],
       "process": [
         {
-          "id": "media-hosting-ops",
+          "id": "plane-ops",
           "covers": [
             "processes"
           ],
-          "note": "Storing and serving media as a business process"
+          "note": "Runs the site-development process in the Plane tracker: backlog, sprints, status"
         }
       ],
       "stack": [
@@ -912,6 +912,10 @@
       },
       "dokploy": {
         "note": "composeId in .dokploy.json"
+      },
+      "plane": {
+        "workspaceSlug": "acme",
+        "note": "projectId in .plane.json; the tracker that site-development is planned in"
       }
     }
   },

@@ -1176,8 +1176,7 @@
       "claude-code"
     ],
     "marketplaces": [
-      "agents-store-claude-plugins",
-      "agents-store-claude-plugins-private"
+      "agents-store-claude-plugins"
     ]
   },
   "roles": [
