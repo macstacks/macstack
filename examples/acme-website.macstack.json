@@ -182,7 +182,7 @@
       "name": "Website development and evolution",
       "type": "development",
       "automation_mode": "agent",
-      "skill": "stack-directus-nextjs-trigger-dev:full-feature",
+      "skill": "stack-directus-nextjs-trigger:full-feature",
       "produces": [
         "website-live"
       ],
@@ -812,7 +812,7 @@
       ],
       "stack": [
         {
-          "id": "stack-directus-nextjs-trigger-dev",
+          "id": "stack-directus-nextjs-trigger",
           "covers": [
             "software",
             "entities",
@@ -832,7 +832,7 @@
         "name": "Website Dev Pack",
         "type": "development",
         "plugins": [
-          "stack-directus-nextjs-trigger-dev",
+          "stack-directus-nextjs-trigger",
           "directus-dev",
           "nextjs-dev",
           "seo-dev"
